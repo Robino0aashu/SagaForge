@@ -1,0 +1,37 @@
+# General / OS-specific files
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+
+# IDE / Editor folders
+.vscode/
+.idea/
+
+# ----------------------------------------------------------------
+# Server (Node.js) specific
+
+# Ignore the node_modules directory in the server
+server/node_modules/
+
+# Ignore environment files in the server
+server/.env
+
+
+# ----------------------------------------------------------------
+# Client (React / Vite) specific
+
+# Ignore the node_modules directory in the client
+client/node_modules/
+
+# Ignore the build output directory
+client/dist/
+
+# Ignore Vite-specific cache and logs
+client/.vite/
+client/coverage/
+client/npm-debug.log*
+
+# Ignore local environment files in the client
+client/.env.local
+client/.env.*.local
