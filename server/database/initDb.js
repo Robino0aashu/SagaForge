@@ -1,8 +1,8 @@
 require('dotenv').config();
 
-const fs = require('fs');
-const path = require('path');
-const { connectPostgreSQL, query } = require('../config/database');
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import {connectPostgreSQL, query} from '../config/database.js';
 
 const initializeDatabase = async () => {
   try {
@@ -11,8 +11,8 @@ const initializeDatabase = async () => {
     await connectPostgreSQL();
     
     // Read schema file
-    const schemaPath = path.join(__dirname, 'schema.sql');
-    const schema = fs.readFileSync(schemaPath, 'utf8');
+    const schemaPath = join(__dirname, 'schema.sql');
+    const schema = readFileSync(schemaPath, 'utf8');
     
     // Execute schema
     await query(schema);

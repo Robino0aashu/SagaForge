@@ -1,7 +1,7 @@
-const {Pool} =require('pg');
+import { Pool } from 'pg';
 let pool;
 
-const connectPostgreSQL = async()=>{
+export const connectPostgreSQL = async()=>{
     try{
         pool = new Pool({
             host: process.env.DB_HOST,
@@ -25,19 +25,13 @@ const connectPostgreSQL = async()=>{
     }
 }
 
-const query =(text, params) =>{
+export const query =(text, params) =>{
     return pool.query(text, params);
 }
 
-const getPool = () => {
+export const getPool = () => {
   if (!pool) {
     throw new Error('PostgreSQL pool not initialized. Call connectPostgreSQL() first.');
   }
   return pool;
-};
-
-module.exports = {
-  connectPostgreSQL,
-  query,
-  getPool
 };
