@@ -1,0 +1,19 @@
+const express = require('express');
+const router = express.Router();
+
+// User registration
+router.post('/register', (req, res) => {
+  res.json({ message: "Register route works!" });
+});
+
+// User login
+router.post('/login', (req, res) => {
+  res.json({ message: "Login route works!" });
+});
+
+// Get user profile (will be protected later)
+router.get('/profile', (req, res) => {
+  res.json({ message: "Profile route works!" });
+});
+
+module.exports = router;

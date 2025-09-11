@@ -5,6 +5,9 @@ require('dotenv').config();
 const {connectPostgreSQL} =require('./config/database');
 const {connectRedis} = require('./config/redis');
 
+const gameRoutes = require('./routes/gameRoutes');
+const userRoutes = require('./routes/userRoutes');
+
 const app=express();
 
 app.use(cors({
@@ -12,6 +15,8 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use('/api/games', gameRoutes);
+app.use('/api/users', userRoutes)
 
 app.get('/api/health', (req, res)=>{
     res.json({
