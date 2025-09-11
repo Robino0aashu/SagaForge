@@ -1,5 +1,5 @@
-const express = require('express');
-const router = express.Router();
+import { Router } from 'express';
+const router = Router();
 
 // User registration
 router.post('/register', (req, res) => {
@@ -16,4 +16,4 @@ router.get('/profile', (req, res) => {
   res.json({ message: "Profile route works!" });
 });
 
-module.exports = router;
+export default router;

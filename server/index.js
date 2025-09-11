@@ -1,12 +1,13 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
+import express, { json } from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+dotenv.config();
 
-const {connectPostgreSQL} =require('./config/database');
-const {connectRedis} = require('./config/redis');
+import { connectPostgreSQL } from './config/database.js';
+import { connectRedis } from './config/redis.js';
 
-const gameRoutes = require('./routes/gameRoutes');
-const userRoutes = require('./routes/userRoutes');
+import gameRoutes from './routes/gameRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 
 const app=express();
 
@@ -14,7 +15,7 @@ app.use(cors({
     origin: process.env.CLIENT_URL
 }));
 
-app.use(express.json());
+app.use(json());
 app.use('/api/games', gameRoutes);
 app.use('/api/users', userRoutes)
 

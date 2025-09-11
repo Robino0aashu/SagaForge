@@ -1,10 +1,10 @@
-const redis =require('redis');
+import { createClient } from 'redis';
 
 let redisClient;
 
-const connectRedis =async()=>{
+export const connectRedis =async()=>{
     try{
-        redisClient=redis.createClient({
+        redisClient=createClient({
             socket: {
                 host: process.env.REDIS_HOST,
                 port: process.env.REDIS_PORT
@@ -30,14 +30,9 @@ const connectRedis =async()=>{
     }
 }
 
-const getRedisClient = () => {
+export const getRedisClient = () => {
   if (!redisClient) {
     throw new Error('Redis client not initialized. Call connectRedis() first.');
   }
   return redisClient;
-};
-
-module.exports={
-    connectRedis,
-    getRedisClient
 };
