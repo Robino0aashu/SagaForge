@@ -8,8 +8,8 @@ class SocketTester {
     constructor() {
         this.socket = null;
         this.roomData = null;
-        this.hostId = "95d55da0-3bdf-45df-8502-b1d828bc9d18"; // Your existing host ID
-        this.roomId = '0032363F'; // Your existing room ID
+        this.hostId = "f303b2bc-eae9-4bd2-b628-c92314ce211f"; // Your existing host ID
+        this.roomId = '31DA8CF1'; // Your existing room ID
     }
 
     // Initialize socket connection

@@ -1,4 +1,4 @@
-import  {getRedisClient} from "../config/redis.js";
+import { getRedisClient } from "../config/redis.js";
 import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -13,8 +13,7 @@ const gameSocketHandlers = (io) => {
 
         socket.on('join-room', async (data) => {
             try {
-                console.log('join-room event received:', data);
-                const { roomId, playerName, playerId } = data;  // playerId may be provided or not
+                const { roomId, playerName, playerId } = data;
                 const redis = getRedisClient();
 
                 if (!roomId || !playerName) {
@@ -30,7 +29,6 @@ const gameSocketHandlers = (io) => {
 
                 const room = JSON.parse(roomData);
 
-                // If playerId provided, try to update socketId for existing player (host or returning player)
                 if (playerId) {
                     const existingPlayer = room.players.find(p => p.id === playerId);
                     if (existingPlayer) {
@@ -40,7 +38,6 @@ const gameSocketHandlers = (io) => {
                         socket.roomId = roomId;
 
                         await redis.setEx(`room:${roomId}`, 24 * 60 * 60, JSON.stringify(room));
-
                         socket.join(roomId);
 
                         const publicRoomData = { ...room, votes: undefined };
@@ -51,21 +48,29 @@ const gameSocketHandlers = (io) => {
                             playerId: existingPlayer.id,
                             roomData: publicRoomData
                         });
-
                         console.log(`🔄 Player ${existingPlayer.name} re-joined room ${roomId}`);
                         return;
                     }
-                    // If playerId provided but not found, fall through to add new player
+                    // If playerId provided but not found, maybe reject or allow new join (your choice)
+                    socket.emit('error', { message: 'Player ID not found in room' });
+                    return;
                 }
 
-                // No playerId or not found: Add new player (allow duplicate names)
+                // For new players (no playerId), reject duplicate playerName
+                if (room.players.some(p => p.name === playerName)) {
+                    socket.emit('error', { message: 'A player with this name already exists in this room.' });
+                    return;
+                }
+
+                // Add new player if name is unique
                 const newPlayerId = uuidv4();
-                room.players.push({
+                const newPlayer = {
                     id: newPlayerId,
                     name: playerName,
                     socketId: socket.id,
                     isHost: false
-                });
+                };
+                room.players.push(newPlayer);
 
                 socket.playerId = newPlayerId;
                 socket.playerName = playerName;
@@ -76,12 +81,12 @@ const gameSocketHandlers = (io) => {
 
                 const publicRoomData = { ...room, votes: undefined };
                 io.to(roomId).emit('room-updated', publicRoomData);
+
                 socket.emit('joined-room', {
                     success: true,
                     playerId: newPlayerId,
                     roomData: publicRoomData
                 });
-
                 console.log(`👥 New player ${playerName} joined room ${roomId}`);
             }
             catch (error) {
@@ -127,7 +132,7 @@ const gameSocketHandlers = (io) => {
                     "Take immediate action",
                     "Look for more information"
                 ];
-                
+
                 room.status = 'voting';
                 room.votes = {};
 
