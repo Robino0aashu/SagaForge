@@ -19,11 +19,12 @@ router.post('/create-room', async (req, res)=>{
         const roomId=uuidv4().substring(0, 8).toUpperCase();
         const redis=getRedisClient();
 
+        const hostId=uuidv4();
         const roomData ={
             id: roomId,
             host: hostName,
             storyPrompt,
-            players: [{name: hostName, id: uuidv4(), isHost: true}],
+            players: [{name: hostName, id: hostId, isHost: true}],
             status: 'waiting', //waiting, playing, voting, completed
             story: [],
             currentChoices: [],
@@ -36,6 +37,7 @@ router.post('/create-room', async (req, res)=>{
 
         res.json({
             success:true,
+            hostId,
             roomId,
             roomData:{
                 ...roomData,
