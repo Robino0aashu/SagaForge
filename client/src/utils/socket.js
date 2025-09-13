@@ -38,52 +38,23 @@ class SocketManager {
         }
     }
 
-    // Join a room
+    // Join a room - simplified to just emit, let GameRoom handle responses
     joinRoom(roomId, playerName, playerId = null) {
         if (!this.socket) {
             throw new Error('Socket not connected');
         }
 
-        return new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-                console.error('⏰ Join room timeout - cleaning up listeners');
-                this.socket.off('joined-room', joinHandler);
-                this.socket.off('error', errorHandler);
-                reject(new Error('Join room timeout'));
-            }, 5000); // Reduced timeout
-
-            const joinHandler = (data) => {
-                clearTimeout(timeout);
-                this.socket.off('error', errorHandler);
-                if (data.success) {
-                    console.log('✅ Successfully joined room:', data);
-                    resolve(data);
-                } else {
-                    console.error('❌ Join room failed:', data);
-                    reject(new Error('Failed to join room'));
-                }
-            };
-
-            const errorHandler = (error) => {
-                clearTimeout(timeout);
-                this.socket.off('joined-room', joinHandler);
-                console.error('❌ Socket error during join:', error);
-                reject(new Error(error.message || 'Socket error'));
-            };
-
-            // Set up listeners BEFORE emitting
-            this.socket.once('joined-room', joinHandler);
-            this.socket.once('error', errorHandler);
-
-            console.log('📡 Attempting to join room:', { roomId, playerName, playerId });
-            
-            // Emit the join request
-            this.socket.emit('join-room', {
-                roomId,
-                playerName,
-                playerId
-            });
+        console.log('📡 Attempting to join room:', { roomId, playerName, playerId });
+        
+        // Just emit the join request - responses will be handled by GameRoom listeners
+        this.socket.emit('join-room', {
+            roomId,
+            playerName,
+            playerId
         });
+
+        // Return a simple promise that resolves immediately
+        return Promise.resolve({ success: true });
     }
 
     // Start game (host only)
@@ -92,23 +63,9 @@ class SocketManager {
             throw new Error('Socket not connected');
         }
 
-        return new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-                reject(new Error('Start game timeout'));
-            }, 10000);
-
-            this.socket.once('game-started', (data) => {
-                clearTimeout(timeout);
-                resolve(data);
-            });
-
-            this.socket.once('error', (error) => {
-                clearTimeout(timeout);
-                reject(new Error(error.message || 'Failed to start game'));
-            });
-
-            this.socket.emit('start-game', { roomId });
-        });
+        console.log('🎮 Starting game for room:', roomId);
+        this.socket.emit('start-game', { roomId });
+        return Promise.resolve({ success: true });
     }
 
     // Add event listener with cleanup
