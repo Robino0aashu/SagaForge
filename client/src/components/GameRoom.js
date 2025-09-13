@@ -183,7 +183,6 @@ function GameRoom() {
     };
 
     const handleLeaveRoom = () => {
-        localStorage.removeItem('gameData');
         socketManager.disconnect();
         navigate('/');
     };
