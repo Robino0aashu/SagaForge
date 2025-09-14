@@ -48,11 +48,11 @@ function GameRoom() {
 
     const connectToRoom = async (data) => {
         console.log('🔍 connectToRoom called with:', data);
-        
+
         try {
             setLoading(true);
             setConnectionStatus('Connecting to server...');
-            
+
             // Connect socket first
             socketManager.connect();
 
@@ -91,6 +91,15 @@ function GameRoom() {
                     status: 'voting',
                     currentChoices: votingData.choices
                 }));
+            });
+            socketManager.on('vote-submitted', (data) => {
+                console.log('Vote submitted:', data);
+                setRoomState(data.roomData);
+            });
+
+            socketManager.on('voting-ended', (data) => {
+                console.log('Voting ended:', data);
+                setRoomState(data.roomData);
             });
 
             socketManager.on('story-updated', (storyData) => {
@@ -193,9 +202,9 @@ function GameRoom() {
                 <h2>⏳ {connectionStatus}</h2>
                 <p>Room ID: {roomId}</p>
                 {gameData && <p>Player: {gameData.playerName} {gameData.isHost ? '(Host)' : ''}</p>}
-                
-                <button 
-                    onClick={() => navigate('/')} 
+
+                <button
+                    onClick={() => navigate('/')}
                     style={{ padding: '10px 20px', marginTop: '20px' }}
                 >
                     Cancel & Return Home
@@ -311,7 +320,7 @@ function GameRoom() {
                 </div>
             )}
 
-            {roomState.status === 'playing' && (
+            {(roomState.status === 'playing' || roomState.status === 'voting') && (
                 <div>
                     <h3>📖 Story</h3>
                     <div style={{
