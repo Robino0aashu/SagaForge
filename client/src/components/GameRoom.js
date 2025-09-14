@@ -2,7 +2,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import socketManager from '../utils/socket';
 import React, { useState, useEffect, useRef } from 'react';
 
-
 function GameRoom() {
     const { roomId } = useParams();
     const navigate = useNavigate();
@@ -13,6 +12,7 @@ function GameRoom() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [connected, setConnected] = useState(false);
+    const [connectionStatus, setConnectionStatus] = useState('Connecting...');
 
     useEffect(() => {
         // Prevent duplicate connections in React StrictMode
@@ -39,6 +39,7 @@ function GameRoom() {
 
         // Cleanup on unmount
         return () => {
+            console.log('🧹 Cleaning up GameRoom...');
             socketManager.removeAllListeners();
             socketManager.disconnect();
             connectionAttempted.current = false;
@@ -46,53 +47,112 @@ function GameRoom() {
     }, [roomId, navigate]);
 
     const connectToRoom = async (data) => {
-        if (connected || loading) {
-            console.log('Already connected or connecting, skipping...');
-            return;
-        }
         console.log('🔍 connectToRoom called with:', data);
-        console.log('🔍 Current connected state:', connected);
+
         try {
             setLoading(true);
-            // Connect socket
+            setConnectionStatus('Connecting to server...');
+
+            // Connect socket first
             socketManager.connect();
 
-            // Set up event listeners
+            // Set up event listeners BEFORE joining room
             socketManager.on('room-updated', (roomData) => {
-                console.log('Room updated:', roomData);
+                console.log('📡 Room updated:', roomData);
                 setRoomState(roomData);
+                setConnected(true);
+                setLoading(false);
+                setConnectionStatus('Connected');
+            });
+
+            socketManager.on('joined-room', (response) => {
+                console.log('✅ Joined room response:', response);
+                if (response.success) {
+                    setRoomState(response.roomData);
+                    setConnected(true);
+                    setLoading(false);
+                    setConnectionStatus('Connected');
+                } else {
+                    setError(response.error || 'Failed to join room');
+                    setLoading(false);
+                }
             });
 
             socketManager.on('game-started', (roomData) => {
-                console.log('Game started:', roomData);
+                console.log('🎮 Game started:', roomData);
                 setRoomState(roomData);
             });
 
             socketManager.on('voting-started', (votingData) => {
-                console.log('Voting started:', votingData);
+                console.log('🗳️ Voting started:', votingData);
+                // Update room state with voting data
+                setRoomState(prev => ({
+                    ...prev,
+                    status: 'voting',
+                    currentChoices: votingData.choices
+                }));
+            });
+            socketManager.on('vote-submitted', (data) => {
+                console.log('Vote submitted:', data);
+                setRoomState(data.roomData);
+            });
+
+            socketManager.on('voting-ended', (data) => {
+                console.log('Voting ended:', data);
+                setRoomState(data.roomData);
+            });
+
+            socketManager.on('story-updated', (storyData) => {
+                console.log('📖 Story updated:', storyData);
+                setRoomState(prev => ({
+                    ...prev,
+                    story: storyData.story,
+                    status: storyData.status,
+                    currentChoices: storyData.choices
+                }));
             });
 
             socketManager.on('error', (error) => {
-                console.error('Socket error:', error);
-                setError(error.message);
+                console.error('❌ Socket error:', error);
+                setError(error.message || error);
+                setLoading(false);
+                setConnectionStatus('Error');
             });
 
-            // Join the room
-            const joinResult = await socketManager.joinRoom(
+            socketManager.on('disconnect', () => {
+                console.log('🔌 Socket disconnected');
+                setConnected(false);
+                setConnectionStatus('Disconnected');
+            });
+
+            socketManager.on('connect', () => {
+                console.log('✅ Socket connected');
+                setConnected(true);
+                setConnectionStatus('Connected');
+            });
+
+            // Now join the room
+            setConnectionStatus('Joining room...');
+            await socketManager.joinRoom(
                 data.roomId,
                 data.playerName,
                 data.playerId
             );
 
-            console.log('Joined room successfully:', joinResult);
-            setRoomState(joinResult.roomData);
-            setConnected(true);
+            // Set a timeout as backup
+            setTimeout(() => {
+                if (loading) {
+                    console.log('⏰ Connection timeout, checking if we actually connected...');
+                    // Don't automatically error - server might still be processing
+                    setConnectionStatus('Waiting for server response...');
+                }
+            }, 3000);
 
         } catch (error) {
-            console.error('Failed to connect to room:', error);
+            console.error('❌ Failed to connect to room:', error);
             setError(error.message);
-        } finally {
             setLoading(false);
+            setConnectionStatus('Failed');
         }
     };
 
@@ -103,6 +163,7 @@ function GameRoom() {
         }
 
         try {
+            console.log('🎮 Host starting game...');
             await socketManager.startGame(roomId);
         } catch (error) {
             console.error('Failed to start game:', error);
@@ -116,16 +177,13 @@ function GameRoom() {
         }
 
         try {
-            console.log('Voting for choice:', choiceIndex);
+            console.log('🗳️ Voting for choice:', choiceIndex);
 
             // Emit vote to server
             socketManager.socket.emit('vote', {
                 roomId: roomId,
                 choiceIndex: choiceIndex
             });
-
-            // You could add local state to track if user has voted
-            // setHasVoted(true);
 
         } catch (error) {
             console.error('Error voting:', error);
@@ -134,7 +192,6 @@ function GameRoom() {
     };
 
     const handleLeaveRoom = () => {
-        localStorage.removeItem('gameData');
         socketManager.disconnect();
         navigate('/');
     };
@@ -142,8 +199,16 @@ function GameRoom() {
     if (loading) {
         return (
             <div style={{ padding: '20px', textAlign: 'center' }}>
-                <h2>⏳ Connecting to room...</h2>
+                <h2>⏳ {connectionStatus}</h2>
                 <p>Room ID: {roomId}</p>
+                {gameData && <p>Player: {gameData.playerName} {gameData.isHost ? '(Host)' : ''}</p>}
+
+                <button
+                    onClick={() => navigate('/')}
+                    style={{ padding: '10px 20px', marginTop: '20px' }}
+                >
+                    Cancel & Return Home
+                </button>
             </div>
         );
     }
@@ -164,6 +229,7 @@ function GameRoom() {
         return (
             <div style={{ padding: '20px', textAlign: 'center' }}>
                 <h2>📡 Waiting for room data...</h2>
+                <p>Status: {connectionStatus}</p>
             </div>
         );
     }
@@ -254,7 +320,7 @@ function GameRoom() {
                 </div>
             )}
 
-            {roomState.status === 'playing' && (
+            {(roomState.status === 'playing' || roomState.status === 'voting') && (
                 <div>
                     <h3>📖 Story</h3>
                     <div style={{
@@ -284,7 +350,7 @@ function GameRoom() {
                         {roomState.currentChoices.map((choice, index) => (
                             <button
                                 key={index}
-                                onClick={() => handleVote(index)}  // Add this onClick
+                                onClick={() => handleVote(index)}
                                 style={{
                                     padding: '15px',
                                     textAlign: 'left',
