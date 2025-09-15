@@ -3,8 +3,11 @@ import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
 dotenv.config();
 
+import { generateStoryPart, generateChoices } from '../services/mistralService.js';
+
 const VOTING_TIMEOUT = process.env.VOTING_TIMEOUT;
 
+// Replace the existing processVotingResults function with this async version:
 const processVotingResults = async (roomId, room, io, redis) => {
     try {
         // Count votes
@@ -14,12 +17,12 @@ const processVotingResults = async (roomId, room, io, redis) => {
         });
 
         // Find winning choice
-        const winningChoice = Object.keys(voteCounts).reduce((a, b) => 
+        const winningChoice = Object.keys(voteCounts).reduce((a, b) =>
             voteCounts[a] > voteCounts[b] ? a : b
         );
 
         const chosenAction = room.currentChoices[winningChoice];
-        
+
         console.log(`📊 Voting results for room ${roomId}:`, voteCounts);
         console.log(`🏆 Winning choice: "${chosenAction}"`);
 
@@ -30,18 +33,20 @@ const processVotingResults = async (roomId, room, io, redis) => {
             timestamp: new Date().toISOString()
         });
 
-        // Generate next story part (simple version for now)
-        const nextStoryPart = generateNextStoryPart(chosenAction, room.story);
+        // Generate next story part with AI
+        console.log('🤖 Generating AI story continuation...');
+        const nextStoryPart = await generateStoryPart(room.story, chosenAction);
         room.story.push({
             type: 'narrative',
             content: nextStoryPart,
             timestamp: new Date().toISOString()
         });
 
-        // Generate new choices for next round
-        room.currentChoices = generateNextChoices(chosenAction);
+        // Generate new choices with AI
+        console.log('🤖 Generating AI choices...');
+        room.currentChoices = await generateChoices(room.story);
         room.votes = {}; // Reset votes
-        
+
         // Save updated room
         await redis.setEx(`room:${roomId}`, 24 * 60 * 60, JSON.stringify(room));
 
@@ -49,7 +54,9 @@ const processVotingResults = async (roomId, room, io, redis) => {
         const publicRoomData = { ...room, votes: undefined };
         io.to(roomId).emit('voting-ended', publicRoomData);
         io.to(roomId).emit('room-updated', publicRoomData);
-        
+
+        console.log('✅ AI story generation complete');
+
         // Start next voting round after a brief delay
         setTimeout(() => {
             io.to(roomId).emit('voting-started', {
@@ -60,51 +67,15 @@ const processVotingResults = async (roomId, room, io, redis) => {
 
     } catch (error) {
         console.error('Error processing voting results:', error);
+        // Fallback to continue the game even if AI fails
+        room.currentChoices = ["Continue forward", "Look around", "Take a break"];
+        io.to(roomId).emit('voting-started', {
+            choices: room.currentChoices,
+            timeLimit: VOTING_TIMEOUT
+        });
     }
 };
 
-// Generate next story part based on chosen action
-const generateNextStoryPart = (chosenAction, currentStory) => {
-    const storyParts = [
-        `As you ${chosenAction.toLowerCase()}, you discover something unexpected...`,
-        `Your decision to ${chosenAction.toLowerCase()} leads to a surprising turn of events...`,
-        `Following your choice to ${chosenAction.toLowerCase()}, the story takes an interesting direction...`,
-        `The consequence of ${chosenAction.toLowerCase()} becomes clear as...`,
-        `Your action to ${chosenAction.toLowerCase()} reveals new mysteries...`
-    ];
-    
-    const randomPart = storyParts[Math.floor(Math.random() * storyParts.length)];
-    return randomPart;
-};
-
-// Generate next set of choices
-const generateNextChoices = (previousAction) => {
-    const choiceSets = [
-        [
-            "Investigate further",
-            "Proceed with caution", 
-            "Take a different approach"
-        ],
-        [
-            "Trust your instincts",
-            "Seek help from others",
-            "Try something completely different"
-        ],
-        [
-            "Face the challenge directly",
-            "Look for an alternative solution",
-            "Gather more information first"
-        ],
-        [
-            "Move forward boldly",
-            "Take time to plan",
-            "Consider all options"
-        ]
-    ];
-    
-    const randomSet = choiceSets[Math.floor(Math.random() * choiceSets.length)];
-    return randomSet;
-};
 
 const gameSocketHandlers = (io) => {
     const votingTimers = new Map();
