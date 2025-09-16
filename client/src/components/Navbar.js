@@ -31,7 +31,7 @@ function Navbar() {
             <div className="guest-indicator">
               <span className="user-avatar guest">👤</span>
               <span className="user-name">Guest User</span>
-              <button 
+              <button
                 className="btn btn-small btn-outline"
                 onClick={() => navigate('/auth')}
               >
@@ -40,16 +40,16 @@ function Navbar() {
             </div>
           ) : isAuthenticated ? (
             <div className="user-menu">
-              <button 
+              <button
                 className="user-button"
                 onClick={toggleDropdown}
               >
-                <span 
+                <span
                   className="user-avatar"
                   style={{ backgroundColor: user?.avatarColor || '#007bff' }}
                 >
-                  {user?.displayName?.charAt(0).toUpperCase() || 
-                   user?.username?.charAt(0).toUpperCase() || 'U'}
+                  {user?.displayName?.charAt(0).toUpperCase() ||
+                    user?.username?.charAt(0).toUpperCase() || 'U'}
                 </span>
                 <span className="user-name">
                   {user?.displayName || user?.username}
@@ -62,12 +62,12 @@ function Navbar() {
               {dropdownOpen && (
                 <div className="dropdown-menu">
                   <div className="dropdown-header">
-                    <div 
+                    <div
                       className="user-avatar large"
                       style={{ backgroundColor: user?.avatarColor || '#007bff' }}
                     >
-                      {user?.displayName?.charAt(0).toUpperCase() || 
-                       user?.username?.charAt(0).toUpperCase() || 'U'}
+                      {user?.displayName?.charAt(0).toUpperCase() ||
+                        user?.username?.charAt(0).toUpperCase() || 'U'}
                     </div>
                     <div className="user-info">
                       <div className="user-display-name">
@@ -76,22 +76,28 @@ function Navbar() {
                       <div className="user-username">@{user?.username}</div>
                     </div>
                   </div>
-                  
+
                   <div className="dropdown-divider"></div>
-                  
-                  <button className="dropdown-item" disabled>
+
+                  <button
+                    className="dropdown-item"
+                    onClick={() => {
+                      navigate('/profile');
+                      setDropdownOpen(false);
+                    }}
+                  >
                     <span>📖</span>
-                    My Stories (Coming Soon)
+                    My Stories
                   </button>
-                  
+
                   <button className="dropdown-item" disabled>
                     <span>⚙️</span>
                     Profile Settings (Coming Soon)
                   </button>
-                  
+
                   <div className="dropdown-divider"></div>
-                  
-                  <button 
+
+                  <button
                     className="dropdown-item logout"
                     onClick={handleLogout}
                   >
@@ -107,7 +113,7 @@ function Navbar() {
 
       {/* Overlay to close dropdown when clicking outside */}
       {dropdownOpen && (
-        <div 
+        <div
           className="dropdown-overlay"
           onClick={() => setDropdownOpen(false)}
         />

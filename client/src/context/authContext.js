@@ -15,6 +15,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
+  const [, setError] = useState(null);
 
   // Initialize auth state from localStorage on app start
   useEffect(() => {
@@ -28,39 +29,55 @@ export const AuthProvider = ({ children }) => {
     } else if (guestMode === 'true') {
       setIsGuest(true);
     }
-    
+
     setLoading(false);
   }, []);
 
   const login = async (username, password) => {
+    setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/users/login', {
+      // Step 1: Log in to get the token (This part is correct)
+      const response = await fetch('/api/users/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ username, password })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
       });
 
       const data = await response.json();
-
       if (!data.success) {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Store auth data
-      localStorage.setItem('authToken', data.token);
-      localStorage.setItem('userData', JSON.stringify(data.user));
-      localStorage.removeItem('guestMode');
-
+      localStorage.setItem('token', data.token);
       setToken(data.token);
-      setUser(data.user);
-      setIsGuest(false);
 
-      return { success: true };
+      // Step 2: Use the token to get the user's profile
+      // We will fix the fetch call here.
+      const profileResponse = await fetch('/api/users/profile', {
+        // The 'method' defaults to 'GET', which is what we want.
+        headers: {
+          'Authorization': `Bearer ${data.token}`,
+        },
+        // DO NOT include a 'body' here. GET requests cannot have one.
+      });
+
+      const profileData = await profileResponse.json();
+      if (profileData.success) {
+        setUser(profileData.user);
+      } else {
+        // If profile fetch fails, clear the token
+        logout();
+        throw new Error(profileData.error || 'Could not fetch profile');
+      }
+
+      setLoading(false);
+      return true;
+
     } catch (error) {
       console.error('Login error:', error);
-      return { success: false, error: error.message };
+      setError(error.message);
+      setLoading(false);
+      return false;
     }
   };
 
@@ -100,7 +117,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('guestMode', 'true');
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
-    
+
     setIsGuest(true);
     setUser(null);
     setToken(null);
@@ -110,7 +127,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
     localStorage.removeItem('guestMode');
-    
+
     setUser(null);
     setToken(null);
     setIsGuest(false);

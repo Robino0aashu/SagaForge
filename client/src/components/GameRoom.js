@@ -2,6 +2,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import socketManager from '../utils/socket';
 import React, { useState, useEffect, useRef } from 'react';
 
+import { useAuth } from '../context/authContext';
+
 function GameRoom() {
     const { roomId } = useParams();
     const navigate = useNavigate();
@@ -13,6 +15,8 @@ function GameRoom() {
     const [error, setError] = useState('');
     const [connected, setConnected] = useState(false);
     const [connectionStatus, setConnectionStatus] = useState('Connecting...');
+
+    const { isGuest, token } = useAuth();
 
     useEffect(() => {
         // Prevent duplicate connections in React StrictMode
@@ -191,9 +195,47 @@ function GameRoom() {
         }
     };
 
+    const handleSaveStory = async () => {
+        try {
+            const response = await fetch('/api/games/story', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    title: roomState.storyPrompt,
+                    content: roomState.story,
+                    summary: roomState.finalStory,
+                    total_choices: roomState.story.filter(p => p.type === 'choice').length,
+                    participants: roomState.players,
+                    is_public: false
+                })
+            });
+
+            // DEBUGGING: Log the raw response text
+            const responseText = await response.text();
+            console.log('--- Server Response Text ---');
+            console.log(responseText);
+            console.log('--------------------------');
+
+            // Now, try to parse it
+            const data = JSON.parse(responseText);
+
+            if (data.success) {
+                alert('Story saved successfully!');
+            } else {
+                alert('Failed to save story: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error saving story:', error);
+            alert('An error occurred while saving the story.');
+        }
+    };
+
     const handleLeaveRoom = () => {
         socketManager.disconnect();
-        navigate('/');
+        navigate('/home');
     };
 
     if (loading) {
@@ -393,6 +435,14 @@ function GameRoom() {
                                     <p>{part.content}</p>
                                 </div>
                             ))
+                        )}
+                        {!isGuest && (
+                            <button
+                                onClick={handleSaveStory}
+                                style={{ marginTop: '20px', padding: '10px 20px' }}
+                            >
+                                Save Story to Profile
+                            </button>
                         )}
                     </div>
                 </div>
