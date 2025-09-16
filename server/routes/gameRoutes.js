@@ -8,11 +8,19 @@ const router = Router();
 //Create a new room!!
 router.post('/create-room', async (req, res)=>{
     try{
-        const {hostName, storyPrompt}=req.body;
+        const {hostName, storyPrompt, numberOfRounds}=req.body;
 
         if(!hostName || !storyPrompt){
             return res.status(400).json({
                 error: "Host name and story prompt are required"
+            });
+        }
+
+        // Validate numberOfRounds
+        const rounds = parseInt(numberOfRounds) || 5;
+        if (rounds < 1 || rounds > 20) {
+            return res.status(400).json({
+                error: "Number of rounds must be between 1 and 20"
             });
         }
 
@@ -24,6 +32,8 @@ router.post('/create-room', async (req, res)=>{
             id: roomId,
             host: hostName,
             storyPrompt,
+            numberOfRounds: rounds,
+            currentRound: 0,
             players: [{name: hostName, id: hostId, isHost: true}],
             status: 'waiting', //waiting, playing, voting, completed
             story: [],
