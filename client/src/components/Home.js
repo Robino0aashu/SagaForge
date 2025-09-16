@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react'; // Import useState and useEffect
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, Typography, Container, Grid, Card, CardContent, Box, Paper, Skeleton, Divider } from '@mui/material'; // Import Skeleton
+import {
+    Button, Typography, Container, Grid, Card, CardContent, Box, Paper, Skeleton, Divider,
+    Dialog, DialogTitle, DialogContent, DialogActions, CardActionArea
+} from '@mui/material'; // Import Dialog components and CardActionArea
 import { keyframes } from '@emotion/react';
 
 // Icons
@@ -17,10 +20,12 @@ const gradientAnimation = keyframes`
   100% { background-position: 0% 50%; }
 `;
 
-// --- NEW COMPONENT FOR THE PUBLIC STORIES SECTION ---
+// --- UPDATED COMPONENT FOR THE PUBLIC STORIES SECTION ---
 const PublicStories = () => {
     const [stories, setStories] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedStory, setSelectedStory] = useState(null); // State for the selected story
+    const [isModalOpen, setIsModalOpen] = useState(false);   // State for modal visibility
 
     useEffect(() => {
         const fetchPublicStories = async () => {
@@ -39,9 +44,20 @@ const PublicStories = () => {
         fetchPublicStories();
     }, []);
 
+    // --- HANDLERS FOR THE DIALOG ---
+    const handleStoryClick = (story) => {
+        setSelectedStory(story);
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setSelectedStory(null);
+    };
+
     if (loading) {
         return (
-             <Grid container spacing={2} sx={{ flexWrap: 'nowrap' }}>
+            <Grid container spacing={2} sx={{ flexWrap: 'nowrap' }}>
                 {[...Array(3)].map((_, index) => (
                     <Grid item xs={12} sm={6} md={4} key={index}>
                         <Skeleton variant="rectangular" width={345} height={150} />
@@ -56,41 +72,57 @@ const PublicStories = () => {
     }
 
     return (
-        <Box
-          sx={{
-            display: 'flex',
-            overflowX: 'auto',
-            py: 2,
-            '&::-webkit-scrollbar': {
-              height: '8px'
-            },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              borderRadius: '4px'
-            }
-          }}
-        >
-          {stories.map(story => (
-            <Card
-              key={story.id}
+        <>
+            <Box
               sx={{
-                flex: '0 0 auto', // Prevent cards from shrinking
-                width: 345,
-                mr: 2,
-                bgcolor: 'rgba(0,0,0,0.2)'
+                  display: 'flex',
+                  overflowX: 'auto',
+                  py: 2,
+                  '&::-webkit-scrollbar': { height: '8px' },
+                  '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '4px' }
               }}
             >
-              <CardContent>
-                <Typography gutterBottom variant="h6" component="div" noWrap>
-                  {story.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ height: 60, overflow: 'hidden' }}>
-                  {story.summary || 'No summary available.'}
-                </Typography>
-              </CardContent>
-            </Card>
-          ))}
-        </Box>
+                {stories.map(story => (
+                    <Card
+                      key={story.id}
+                      sx={{
+                          flex: '0 0 auto',
+                          width: 345,
+                          mr: 2,
+                          bgcolor: 'rgba(0,0,0,0.2)'
+                      }}
+                    >
+                        {/* CardActionArea makes the entire card clickable */}
+                        <CardActionArea onClick={() => handleStoryClick(story)}>
+                            <CardContent>
+                                <Typography gutterBottom variant="h6" component="div" noWrap>
+                                    {story.title}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ height: 60, overflow: 'hidden' }}>
+                                    {story.summary || 'No summary available.'}
+                                </Typography>
+                            </CardContent>
+                        </CardActionArea>
+                    </Card>
+                ))}
+            </Box>
+
+            {/* --- DIALOG FOR DISPLAYING THE STORY --- */}
+            {selectedStory && (
+                <Dialog open={isModalOpen} onClose={handleCloseModal} fullWidth maxWidth="md">
+                    <DialogTitle>{selectedStory.title}</DialogTitle>
+                    <DialogContent dividers>
+                        {/* Make sure your API response includes a 'content' field for the full story */}
+                        <Typography style={{ whiteSpace: 'pre-wrap' }}>
+                            {selectedStory.summary || 'Full story content not available.'}
+                        </Typography>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={handleCloseModal}>Close</Button>
+                    </DialogActions>
+                </Dialog>
+            )}
+        </>
     );
 };
 

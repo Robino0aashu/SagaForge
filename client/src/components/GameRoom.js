@@ -65,9 +65,8 @@ function GameRoom() {
     }, [roomId, navigate]);
 
     const handleOpenPublicConfirm = () => {
-        if (!isGuest) { // Only open for registered users
             setIsPublicConfirmOpen(true);
-        }
+        
     };
 
     const handleClosePublicConfirm = () => {
