@@ -130,7 +130,7 @@ function CreateRoom() {
             required
           />
           <small style={{ color: '#666' }}>
-            Choose between 1-20 rounds. Each round includes voting and story progression.
+            Choose between 3-15 rounds. Each round includes voting and story progression.
           </small>
         </div>
 
