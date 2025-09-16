@@ -10,6 +10,9 @@ export const generateStoryPart = async (storyContext, chosenAction, currentRound
     try {
         const prompt = buildStoryPrompt(storyContext, chosenAction, currentRound, totalRounds);
         
+        // Dynamically adjust story length based on the number of rounds
+        const maxTokens = 100 - ((10 - totalRounds) * 5); // Fewer rounds = shorter story parts
+
         const response = await mistral.chat.complete({
             model: 'mistral-small-latest',
             messages: [
@@ -23,7 +26,7 @@ export const generateStoryPart = async (storyContext, chosenAction, currentRound
                 }
             ],
             temperature: 0.8,
-            max_tokens: 150
+            max_tokens: maxTokens > 50 ? maxTokens : 50 // ensure a minimum length
         });
 
         return response.choices[0].message.content.trim();
@@ -42,7 +45,7 @@ export const generateChoices = async (storyContext, currentRound, totalRounds) =
             messages: [
                 {
                     role: 'system',
-                    content: 'You are a storyteller creating meaningful choices for an interactive fiction game. Generate exactly 3 distinct, compelling options that advance the story appropriately for the current story phase. Format as a simple numbered list: 1. [choice], 2. [choice], 3. [choice]'
+                    content: 'You are a storyteller creating meaningful choices for an interactive fiction game. Generate exactly 3 distinct, compelling, and brief options (ideally under 10 words) that advance the story. Format as a simple numbered list: 1. [choice], 2. [choice], 3. [choice]'
                 },
                 {
                     role: 'user',
@@ -87,7 +90,7 @@ const buildChoicesPrompt = (storyContext, currentRound, totalRounds) => {
 Story Phase: ${storyPhase} (Round ${currentRound + 1} of ${totalRounds})
 ${getPhaseGuidance(storyPhase)}
 
-Generate 3 meaningful choices for what the characters should do next:`;
+Generate 3 meaningful and concise choices (under 10 words) for what the characters should do next:`;
 };
 
 const getStoryPhase = (currentRound, totalRounds) => {

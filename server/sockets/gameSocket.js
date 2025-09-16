@@ -50,15 +50,15 @@ const processVotingResults = async (roomId, room, io, redis) => {
         // Check if game should end
         if (room.currentRound >= room.numberOfRounds) {
             console.log(`🏁 Game completed after ${room.numberOfRounds} rounds`);
-            
+
             // Generate final conclusion
             const conclusion = await generateStoryPart(
-                room.story, 
-                "bring the story to a satisfying conclusion", 
-                room.currentRound, 
+                room.story,
+                "bring the story to a satisfying conclusion",
+                room.currentRound,
                 room.numberOfRounds
             );
-            
+
             room.story.push({
                 type: 'conclusion',
                 content: conclusion,
@@ -76,7 +76,7 @@ const processVotingResults = async (roomId, room, io, redis) => {
             const publicRoomData = { ...room, votes: undefined };
             io.to(roomId).emit('game-completed', publicRoomData);
             io.to(roomId).emit('room-updated', publicRoomData);
-            
+
             console.log('✅ Game completed successfully');
             return;
         }
@@ -110,7 +110,7 @@ const processVotingResults = async (roomId, room, io, redis) => {
         console.error('Error processing voting results:', error);
         // Fallback to continue the game even if AI fails
         room.currentRound += 1;
-        
+
         if (room.currentRound >= room.numberOfRounds) {
             room.status = 'completed';
             room.completedAt = new Date().toISOString();
@@ -118,7 +118,7 @@ const processVotingResults = async (roomId, room, io, redis) => {
             io.to(roomId).emit('game-completed', publicRoomData);
             return;
         }
-        
+
         room.currentChoices = ["Continue forward", "Look around", "Take a break"];
         io.to(roomId).emit('voting-started', {
             choices: room.currentChoices,
@@ -231,7 +231,6 @@ const gameSocketHandlers = (io) => {
                 }
 
                 const room = JSON.parse(roomData);
-                // 🔒 SECURITY FIX: Check against the persistent playerId, not the temporary socket.id
                 const player = room.players.find(p => p.id === socket.playerId);
                 if (!player || !player.isHost) {
                     socket.emit('error', { message: 'Only the host can start the game' });
@@ -239,24 +238,16 @@ const gameSocketHandlers = (io) => {
                 }
 
                 room.status = 'playing';
-                room.currentRound = 0; // Initialize round counter
+                room.currentRound = 0;
                 room.story = [{
                     type: 'prompt',
                     content: room.storyPrompt,
                     timestamp: new Date().toISOString(),
                     round: 0
                 }];
-                room.story.push({
-                    type: 'narrative',
-                    content: `The adventure begins... ${room.storyPrompt}`,
-                    timestamp: new Date().toISOString(),
-                    round: 0
-                });
-                room.currentChoices = [
-                    "Explore the area carefully",
-                    "Take immediate action",
-                    "Look for more information"
-                ];
+
+                // Generate initial choices with AI
+                room.currentChoices = await generateChoices(room.story, -1, room.numberOfRounds);
                 room.status = 'voting';
                 room.votes = {};
 

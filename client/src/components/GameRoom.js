@@ -234,6 +234,9 @@ function GameRoom() {
         );
     }
 
+    const lastTwoStoryParts = roomState.story?.slice(-2) || [];
+
+
     return (
         <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
             {/* Header */}
@@ -294,6 +297,7 @@ function GameRoom() {
             </div>
 
             {/* Game Content */}
+            {/* Game Content */}
             {roomState.status === 'waiting' && (
                 <div style={{ textAlign: 'center', padding: '30px', background: '#fff3cd', border: '1px solid #ffeaa7' }}>
                     <h3>⏳ Waiting to Start</h3>
@@ -329,9 +333,9 @@ function GameRoom() {
                         border: '1px solid #dee2e6',
                         marginBottom: '20px'
                     }}>
-                        {roomState.story?.map((part, index) => (
+                        {lastTwoStoryParts.map((part, index) => (
                             <div key={index} style={{ marginBottom: '15px' }}>
-                                <strong>{part.type === 'prompt' ? '📝 Prompt' : '📖 Story'}:</strong>
+                                <strong>{part.type === 'prompt' ? '📝 Prompt' : (part.type === 'choice' ? '👉 Choice' : '📖 Story')}:</strong>
                                 <p>{part.content}</p>
                             </div>
                         ))}
@@ -363,6 +367,25 @@ function GameRoom() {
                             >
                                 <strong>Option {index + 1}:</strong> {choice}
                             </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {roomState.status === 'completed' && (
+                <div>
+                    <h3>📜 The Full Saga</h3>
+                    <div style={{
+                        padding: '20px',
+                        background: '#f8f9fa',
+                        border: '1px solid #dee2e6',
+                        marginBottom: '20px'
+                    }}>
+                        {roomState.story?.map((part, index) => (
+                            <div key={index} style={{ marginBottom: '15px' }}>
+                                <strong>{part.type === 'prompt' ? '📝 Prompt' : (part.type === 'choice' ? '👉 Choice' : '📖 Story')}:</strong>
+                                <p>{part.content}</p>
+                            </div>
                         ))}
                     </div>
                 </div>
