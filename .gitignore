@@ -33,5 +33,6 @@ client/coverage/
 client/npm-debug.log*
 
 # Ignore local environment files in the client
+client/.env
 client/.env.local
 client/.env.*.local

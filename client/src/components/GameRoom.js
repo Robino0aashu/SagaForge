@@ -379,14 +379,21 @@ function GameRoom() {
                         padding: '20px',
                         background: '#f8f9fa',
                         border: '1px solid #dee2e6',
-                        marginBottom: '20px'
+                        marginBottom: '20px',
+                        whiteSpace: 'pre-wrap' // Helps in rendering paragraphs correctly
                     }}>
-                        {roomState.story?.map((part, index) => (
-                            <div key={index} style={{ marginBottom: '15px' }}>
-                                <strong>{part.type === 'prompt' ? '📝 Prompt' : (part.type === 'choice' ? '👉 Choice' : '📖 Story')}:</strong>
-                                <p>{part.content}</p>
-                            </div>
-                        ))}
+                        {/* Display the consolidated final story */}
+                        {roomState.finalStory ? (
+                            <p>{roomState.finalStory}</p>
+                        ) : (
+                            // Fallback for older games or if consolidation fails
+                            roomState.story?.map((part, index) => (
+                                <div key={index} style={{ marginBottom: '15px' }}>
+                                    <strong>{part.type === 'prompt' ? '📝 Prompt' : (part.type === 'choice' ? '👉 Choice' : '📖 Story')}:</strong>
+                                    <p>{part.content}</p>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
             )}
