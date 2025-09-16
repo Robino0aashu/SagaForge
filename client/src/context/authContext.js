@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (username, password) => {
     setLoading(true);
     try {
-      // Step 1: Log in to get the token (This part is correct)
+      // Step 1: Log in to get the token
       const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -48,24 +48,22 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.error || 'Login failed');
       }
 
-      localStorage.setItem('token', data.token);
+      localStorage.setItem('authToken', data.token);
       setToken(data.token);
 
       // Step 2: Use the token to get the user's profile
-      // We will fix the fetch call here.
       const profileResponse = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/users/profile`, {
-        // The 'method' defaults to 'GET', which is what we want.
         headers: {
           'Authorization': `Bearer ${data.token}`,
         },
-        // DO NOT include a 'body' here. GET requests cannot have one.
       });
 
       const profileData = await profileResponse.json();
       if (profileData.success) {
         setUser(profileData.user);
+        // THE FIX: Persist user data after profile fetch
+        localStorage.setItem('userData', JSON.stringify(profileData.user));
       } else {
-        // If profile fetch fails, clear the token
         logout();
         throw new Error(profileData.error || 'Could not fetch profile');
       }

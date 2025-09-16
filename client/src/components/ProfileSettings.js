@@ -1,77 +1,81 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useAuth } from '../context/authContext'; // We still need this for the token
-import { Navigate } from 'react-router-dom';
+import {
+  Container,
+  Paper,
+  Typography,
+  Box,
+  CircularProgress,
+  Alert,
+  Avatar,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Divider
+} from '@mui/material';
+import { Person, AlternateEmail, Event } from '@mui/icons-material';
 
 function ProfileSettings() {
-    // We get the token from the context to authorize our API call
-    const { token } = useAuth(); 
-    
-    // Local state for this component to store profile data, loading, and error states
-    const [profileData, setProfileData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+  const { user } = useAuth(); // Get the full user object from the context
 
-    useEffect(() => {
-        // Function to fetch the profile data from the server
-        const fetchProfile = async () => {
-            if (!token) {
-                setLoading(false);
-                return;
-            }
-
-            try {
-                const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/users/profile`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    setProfileData(data.user);
-                } else {
-                    setError(data.error || 'Failed to fetch profile');
-                }
-            } catch (err) {
-                setError('An error occurred while fetching profile data.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchProfile();
-    }, [token]); // The effect runs whenever the token changes
-
-    // --- Render Logic ---
-
-    if (loading) {
-        return <div style={{ textAlign: 'center', padding: '50px' }}>Loading...</div>;
-    }
-
-    if (error) {
-        return <div style={{ textAlign: 'center', padding: '50px', color: 'red' }}>Error: {error}</div>;
-    }
-
-    // If there's no token or no profile data, the user is not authenticated
-    if (!profileData) {
-        return <Navigate to="/auth" replace />;
-    }
-
+  // If the user object is not available yet, show a loading state.
+  if (!user) {
     return (
-        <div style={{ padding: '20px', maxWidth: '600px', margin: '40px auto' }}>
-            <h2>Profile Settings</h2>
-            <div style={{ border: '1px solid #ddd', padding: '20px', borderRadius: '8px', background: '#f9f9f9' }}>
-                <p><strong>Username:</strong> @{profileData.username}</p>
-                <p><strong>Display Name:</strong> {profileData.displayName}</p>
-                <p><strong>Email:</strong> {profileData.email}</p>
-                <p><strong>Joined:</strong> {new Date(profileData.createdAt).toLocaleDateString()}</p>
-            </div>
-            <div style={{ marginTop: '20px', color: '#888', textAlign: 'center' }}>
-                <p>Editing functionality is coming soon!</p>
-            </div>
-        </div>
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
+        <CircularProgress />
+      </Box>
     );
+  }
+
+  return (
+    <Container component="main" maxWidth="sm" sx={{ my: 4 }}>
+      <Paper elevation={6} sx={{ p: { xs: 2, sm: 4 }, borderRadius: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
+          <Avatar
+            sx={{
+              width: 80,
+              height: 80,
+              mb: 2,
+              bgcolor: user.avatarColor || 'primary.main',
+              fontSize: '2.5rem'
+            }}
+          >
+            {user.displayName?.charAt(0).toUpperCase()}
+          </Avatar>
+          <Typography component="h1" variant="h4">
+            {user.displayName}
+          </Typography>
+          <Typography color="text.secondary">
+            @{user.username}
+          </Typography>
+        </Box>
+
+        <Divider />
+
+        <List sx={{ mt: 2 }}>
+          <ListItem>
+            <ListItemIcon>
+              <AlternateEmail />
+            </ListItemIcon>
+            <ListItemText primary="Email" secondary={user.email} />
+          </ListItem>
+          <ListItem>
+            <ListItemIcon>
+              <Event />
+            </ListItemIcon>
+            <ListItemText primary="Joined On" secondary={new Date(user.createdAt).toLocaleDateString()} />
+          </ListItem>
+        </List>
+        
+        <Box sx={{ mt: 4, textAlign: 'center' }}>
+          <Alert severity="info" variant="outlined">
+            Editing functionality is coming soon!
+          </Alert>
+        </Box>
+      </Paper>
+    </Container>
+  );
 }
 
 export default ProfileSettings;

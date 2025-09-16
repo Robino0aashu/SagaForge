@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/authContext';
 import Navbar from './components/Navbar';
 import AuthPage from './components/AuthPage';
@@ -11,6 +11,15 @@ import MyStories from './components/MyStories';
 import Profile from './components/ProfileSettings';
 import LandingPage from './components/LandingPage';
 import './App.css';
+
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+  },
+});
 
 // Protected Route component that checks if user is authenticated or guest
 function ProtectedRoute({ children }) {
@@ -36,9 +45,10 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+
 function AppContent() {
   const { loading, isAuthenticated } = useAuth();
-
+  const location = useLocation();
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -48,7 +58,7 @@ function AppContent() {
   }
   
   // Always show Navbar if authenticated, otherwise only on non-landing pages
-  const showNavbar = isAuthenticated;
+  const showNavbar = location.pathname !== '/';;
 
   return (
     <div className="App">
@@ -65,7 +75,7 @@ function AppContent() {
         <Route path="/join" element={<ProtectedRoute><JoinRoom /></ProtectedRoute>} />
         <Route path="/room/:roomId" element={<ProtectedRoute><GameRoom /></ProtectedRoute>} />
         <Route path="/stories" element={<ProtectedRoute><MyStories /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
         {/* Fallback redirect */}
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -78,7 +88,11 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <AppContent />
+        {/* Apply the dark theme to the entire app */}
+        <ThemeProvider theme={darkTheme}>
+          <CssBaseline /> {/* Ensures a consistent baseline across browsers */}
+          <AppContent />
+        </ThemeProvider>
       </AuthProvider>
     </Router>
   );
