@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 function CreateRoom() {
   const [formData, setFormData] = useState({
     hostName: '',
-    storyPrompt: ''
+    storyPrompt: '',
+    numberOfRounds: 5
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -14,7 +15,7 @@ function CreateRoom() {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: name === 'numberOfRounds' ? parseInt(value) || 1 : value
     }));
   };
 
@@ -28,6 +29,10 @@ function CreateRoom() {
         throw new Error('Please fill in all fields');
       }
 
+      if (formData.numberOfRounds < 1 || formData.numberOfRounds > 20) {
+        throw new Error('Number of rounds must be between 1 and 20');
+      }
+
       const response = await fetch('http://localhost:5000/api/games/create-room', {
         method: 'POST',
         headers: {
@@ -35,7 +40,8 @@ function CreateRoom() {
         },
         body: JSON.stringify({
           hostName: formData.hostName.trim(),
-          storyPrompt: formData.storyPrompt.trim()
+          storyPrompt: formData.storyPrompt.trim(),
+          numberOfRounds: formData.numberOfRounds
         })
       });
 
@@ -108,6 +114,23 @@ function CreateRoom() {
             style={{ width: '100%', padding: '8px', marginTop: '5px' }}
             required
           />
+        </div>
+
+        <div style={{ marginBottom: '15px' }}>
+          <label>Number of Rounds:</label><br/>
+          <input
+            type="number"
+            name="numberOfRounds"
+            value={formData.numberOfRounds}
+            onChange={handleInputChange}
+            min="1"
+            max="20"
+            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+            required
+          />
+          <small style={{ color: '#666' }}>
+            Choose between 1-20 rounds. Each round includes voting and story progression.
+          </small>
         </div>
 
         <div style={{ marginBottom: '15px' }}>

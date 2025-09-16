@@ -7,7 +7,7 @@ import { generateStoryPart, generateChoices } from '../services/mistralService.j
 
 const VOTING_TIMEOUT = process.env.VOTING_TIMEOUT;
 
-// Replace the existing processVotingResults function with this async version:
+// Updated processVotingResults function with rounds tracking:
 const processVotingResults = async (roomId, room, io, redis) => {
     try {
         // Count votes
@@ -23,28 +23,67 @@ const processVotingResults = async (roomId, room, io, redis) => {
 
         const chosenAction = room.currentChoices[winningChoice];
 
-        console.log(`📊 Voting results for room ${roomId}:`, voteCounts);
+        console.log(`📊 Voting results for room ${roomId} (Round ${room.currentRound + 1}):`, voteCounts);
         console.log(`🏆 Winning choice: "${chosenAction}"`);
+
+        // Increment round counter FIRST
+        room.currentRound += 1;
 
         // Add the chosen action to the story
         room.story.push({
             type: 'choice',
             content: `The group decided to: ${chosenAction}`,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            round: room.currentRound
         });
 
-        // Generate next story part with AI
+        // Generate next story part with AI (passing round information)
         console.log('🤖 Generating AI story continuation...');
-        const nextStoryPart = await generateStoryPart(room.story, chosenAction);
+        const nextStoryPart = await generateStoryPart(room.story, chosenAction, room.currentRound - 1, room.numberOfRounds);
         room.story.push({
             type: 'narrative',
             content: nextStoryPart,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            round: room.currentRound
         });
 
-        // Generate new choices with AI
+        // Check if game should end
+        if (room.currentRound >= room.numberOfRounds) {
+            console.log(`🏁 Game completed after ${room.numberOfRounds} rounds`);
+            
+            // Generate final conclusion
+            const conclusion = await generateStoryPart(
+                room.story, 
+                "bring the story to a satisfying conclusion", 
+                room.currentRound, 
+                room.numberOfRounds
+            );
+            
+            room.story.push({
+                type: 'conclusion',
+                content: conclusion,
+                timestamp: new Date().toISOString(),
+                round: room.currentRound
+            });
+
+            room.status = 'completed';
+            room.completedAt = new Date().toISOString();
+
+            // Save completed room
+            await redis.setEx(`room:${roomId}`, 24 * 60 * 60, JSON.stringify(room));
+
+            // Notify clients of completion
+            const publicRoomData = { ...room, votes: undefined };
+            io.to(roomId).emit('game-completed', publicRoomData);
+            io.to(roomId).emit('room-updated', publicRoomData);
+            
+            console.log('✅ Game completed successfully');
+            return;
+        }
+
+        // Generate new choices with AI (passing round information)
         console.log('🤖 Generating AI choices...');
-        room.currentChoices = await generateChoices(room.story);
+        room.currentChoices = await generateChoices(room.story, room.currentRound - 1, room.numberOfRounds);
         room.votes = {}; // Reset votes
 
         // Save updated room
@@ -55,23 +94,37 @@ const processVotingResults = async (roomId, room, io, redis) => {
         io.to(roomId).emit('voting-ended', publicRoomData);
         io.to(roomId).emit('room-updated', publicRoomData);
 
-        console.log('✅ AI story generation complete');
+        console.log(`✅ Round ${room.currentRound} setup complete`);
 
         // Start next voting round after a brief delay
         setTimeout(() => {
             io.to(roomId).emit('voting-started', {
                 choices: room.currentChoices,
-                timeLimit: VOTING_TIMEOUT
+                timeLimit: VOTING_TIMEOUT,
+                currentRound: room.currentRound,
+                totalRounds: room.numberOfRounds
             });
         }, 3000); // 3 second delay to read the story
 
     } catch (error) {
         console.error('Error processing voting results:', error);
         // Fallback to continue the game even if AI fails
+        room.currentRound += 1;
+        
+        if (room.currentRound >= room.numberOfRounds) {
+            room.status = 'completed';
+            room.completedAt = new Date().toISOString();
+            const publicRoomData = { ...room, votes: undefined };
+            io.to(roomId).emit('game-completed', publicRoomData);
+            return;
+        }
+        
         room.currentChoices = ["Continue forward", "Look around", "Take a break"];
         io.to(roomId).emit('voting-started', {
             choices: room.currentChoices,
-            timeLimit: VOTING_TIMEOUT
+            timeLimit: VOTING_TIMEOUT,
+            currentRound: room.currentRound,
+            totalRounds: room.numberOfRounds
         });
     }
 };
@@ -186,15 +239,18 @@ const gameSocketHandlers = (io) => {
                 }
 
                 room.status = 'playing';
+                room.currentRound = 0; // Initialize round counter
                 room.story = [{
                     type: 'prompt',
                     content: room.storyPrompt,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    round: 0
                 }];
                 room.story.push({
                     type: 'narrative',
                     content: `The adventure begins... ${room.storyPrompt}`,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    round: 0
                 });
                 room.currentChoices = [
                     "Explore the area carefully",
@@ -210,10 +266,12 @@ const gameSocketHandlers = (io) => {
                 io.to(roomId).emit('game-started', publicRoomData);
                 io.to(roomId).emit('voting-started', {
                     choices: room.currentChoices,
-                    timeLimit: VOTING_TIMEOUT
+                    timeLimit: VOTING_TIMEOUT,
+                    currentRound: room.currentRound,
+                    totalRounds: room.numberOfRounds
                 });
 
-                console.log(`🎮 Game started in room ${roomId}`);
+                console.log(`🎮 Game started in room ${roomId} for ${room.numberOfRounds} rounds`);
             } catch (error) {
                 console.error('Error starting game:', error);
                 socket.emit('error', { message: 'Failed to start game' });
@@ -249,7 +307,7 @@ const gameSocketHandlers = (io) => {
 
                 // Record the vote
                 room.votes[socket.playerId] = choiceIndex;
-                console.log(`🗳️ Player ${player.name} voted for choice ${choiceIndex}`);
+                console.log(`🗳️ Player ${player.name} voted for choice ${choiceIndex} (Round ${room.currentRound + 1})`);
 
                 // Check if all connected players have voted
                 const connectedPlayers = room.players.filter(p => p.socketId);
@@ -312,7 +370,6 @@ const gameSocketHandlers = (io) => {
                         console.log(`🔌 Player ${disconnectedPlayer.name} marked as offline in room ${roomId}`);
                     }
                 } catch (error) {
-                    Fstart
                     console.error('Error handling disconnect:', error);
                 }
             }
