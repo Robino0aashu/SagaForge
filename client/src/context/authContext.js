@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       // Step 1: Log in to get the token (This part is correct)
-      const response = await fetch('/api/users/login', {
+      const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
 
       // Step 2: Use the token to get the user's profile
       // We will fix the fetch call here.
-      const profileResponse = await fetch('/api/users/profile', {
+      const profileResponse = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/users/profile`, {
         // The 'method' defaults to 'GET', which is what we want.
         headers: {
           'Authorization': `Bearer ${data.token}`,

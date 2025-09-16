@@ -82,7 +82,7 @@ function Navbar() {
                   <button
                     className="dropdown-item"
                     onClick={() => {
-                      navigate('/profile');
+                      navigate('/stories');
                       setDropdownOpen(false);
                     }}
                   >

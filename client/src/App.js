@@ -7,7 +7,7 @@ import Home from './components/Home';
 import CreateRoom from './components/CreateRoom';
 import JoinRoom from './components/JoinRoom';
 import GameRoom from './components/GameRoom';
-import Profile from './components/Profile';
+import MyStories from './components/MyStories';
 import './App.css';
 
 // Protected Route component that checks if user is authenticated or guest
@@ -104,9 +104,9 @@ function AppContent() {
             <GameRoom />
           </ProtectedRoute>
         } />
-        <Route path="/profile" element={
+        <Route path="/stories" element={
           <ProtectedRoute>
-            <Profile />
+            <MyStories />
           </ProtectedRoute>
         } />
         <Route path="/" element={<Navigate to="/auth" replace />} />

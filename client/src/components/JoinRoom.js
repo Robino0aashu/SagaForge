@@ -29,7 +29,7 @@ function JoinRoom() {
       }
 
       // Check if room exists first
-      const response = await fetch(`http://localhost:5000/api/games/room/${formData.roomId.trim()}`);
+      const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/games/room/${formData.roomId.trim()}`);
       const data = await response.json();
 
       if (!data.success) {

@@ -171,7 +171,7 @@ router.post('/story', authenticateToken, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error saving story:', error);
+        console.error('Error saving the story:', error);
         res.status(500).json({ error: 'Failed to save story' });
     }
 });

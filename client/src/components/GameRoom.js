@@ -196,8 +196,16 @@ function GameRoom() {
     };
 
     const handleSaveStory = async () => {
+        if (!token || isGuest) {
+            alert('Only registered users can save stories.');
+            return;
+        }
+
         try {
-            const response = await fetch('/api/games/story', {
+            // FIX: Add a fallback for the story array to prevent crash
+            const storyContent = roomState.story || [];
+
+            const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/games/story`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -205,30 +213,24 @@ function GameRoom() {
                 },
                 body: JSON.stringify({
                     title: roomState.storyPrompt,
-                    content: roomState.story,
+                    content: storyContent, // Use the safe variable
                     summary: roomState.finalStory,
-                    total_choices: roomState.story.filter(p => p.type === 'choice').length,
+                    // Use the safe variable here as well
+                    total_choices: storyContent.filter(p => p.type === 'choice').length,
                     participants: roomState.players,
                     is_public: false
                 })
             });
 
-            // DEBUGGING: Log the raw response text
-            const responseText = await response.text();
-            console.log('--- Server Response Text ---');
-            console.log(responseText);
-            console.log('--------------------------');
-
-            // Now, try to parse it
-            const data = JSON.parse(responseText);
+            const data = await response.json();
 
             if (data.success) {
                 alert('Story saved successfully!');
             } else {
-                alert('Failed to save story: ' + data.error);
+                alert('Failed to save story: ' + (data.error || 'Unknown error'));
             }
         } catch (error) {
-            console.error('Error saving story:', error);
+            console.error('Error saving the story:', error);
             alert('An error occurred while saving the story.');
         }
     };

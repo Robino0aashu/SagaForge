@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/authContext';
 
-function Profile() {
+function MyStories() {
     const [stories, setStories] = useState([]);
     const { token } = useAuth();
 
     useEffect(() => {
         const fetchStories = async () => {
             try {
-                const response = await fetch('/api/user/stories', {
+                const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/users/stories`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -47,4 +47,4 @@ function Profile() {
     );
 }
 
-export default Profile;
+export default MyStories;
