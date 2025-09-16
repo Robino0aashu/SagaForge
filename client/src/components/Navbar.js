@@ -1,118 +1,123 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/authContext';
 import { useNavigate } from 'react-router-dom';
-import './Navbar.css';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  IconButton,
+  Avatar,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  Divider,
+  Box,
+} from '@mui/material';
+import {
+  Book,
+  AccountCircle,
+  Settings,
+  Logout,
+  MenuBook,
+} from '@mui/icons-material';
 
 function Navbar() {
   const { user, isGuest, logout, isAuthenticated } = useAuth();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const dropdownOpen = Boolean(anchorEl);
   const navigate = useNavigate();
+
+  const handleMenu = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleNavigate = (path) => {
+    navigate(path);
+    handleClose();
+  };
 
   const handleLogout = () => {
     logout();
     navigate('/auth');
-    setDropdownOpen(false);
-  };
-
-  const toggleDropdown = () => {
-    setDropdownOpen(!dropdownOpen);
+    handleClose();
   };
 
   return (
-    <nav className="navbar">
-      <div className="navbar-content">
-        <div className="navbar-brand">
-          <span className="navbar-logo">🏰</span>
-          <span className="navbar-title">SagaForge</span>
-        </div>
+    <AppBar position="static" color="default" elevation={1}>
+      <Toolbar>
+        {/* Brand/Logo Section */}
+        <Button color="inherit" onClick={() => navigate('/home')} sx={{ textTransform: 'none' }}>
+          <MenuBook sx={{ mr: 1 }} />
+          <Typography variant="h6" component="div">
+            SagaForge
+          </Typography>
+        </Button>
+        
+        <Box sx={{ flexGrow: 1 }} />
 
-        <div className="navbar-user">
-          {isGuest ? (
-            <div className="guest-indicator">
-              <span className="user-avatar guest">👤</span>
-              <span className="user-name">Guest User</span>
-              <button 
-                className="btn btn-small btn-outline"
-                onClick={() => navigate('/auth')}
-              >
-                Sign In
-              </button>
-            </div>
-          ) : isAuthenticated ? (
-            <div className="user-menu">
-              <button 
-                className="user-button"
-                onClick={toggleDropdown}
-              >
-                <span 
-                  className="user-avatar"
-                  style={{ backgroundColor: user?.avatarColor || '#007bff' }}
-                >
-                  {user?.displayName?.charAt(0).toUpperCase() || 
-                   user?.username?.charAt(0).toUpperCase() || 'U'}
-                </span>
-                <span className="user-name">
-                  {user?.displayName || user?.username}
-                </span>
-                <span className={`dropdown-arrow ${dropdownOpen ? 'open' : ''}`}>
-                  ▼
-                </span>
-              </button>
-
-              {dropdownOpen && (
-                <div className="dropdown-menu">
-                  <div className="dropdown-header">
-                    <div 
-                      className="user-avatar large"
-                      style={{ backgroundColor: user?.avatarColor || '#007bff' }}
-                    >
-                      {user?.displayName?.charAt(0).toUpperCase() || 
-                       user?.username?.charAt(0).toUpperCase() || 'U'}
-                    </div>
-                    <div className="user-info">
-                      <div className="user-display-name">
-                        {user?.displayName || user?.username}
-                      </div>
-                      <div className="user-username">@{user?.username}</div>
-                    </div>
-                  </div>
-                  
-                  <div className="dropdown-divider"></div>
-                  
-                  <button className="dropdown-item" disabled>
-                    <span>📖</span>
-                    My Stories (Coming Soon)
-                  </button>
-                  
-                  <button className="dropdown-item" disabled>
-                    <span>⚙️</span>
-                    Profile Settings (Coming Soon)
-                  </button>
-                  
-                  <div className="dropdown-divider"></div>
-                  
-                  <button 
-                    className="dropdown-item logout"
-                    onClick={handleLogout}
-                  >
-                    <span>🚪</span>
-                    Sign Out
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      {/* Overlay to close dropdown when clicking outside */}
-      {dropdownOpen && (
-        <div 
-          className="dropdown-overlay"
-          onClick={() => setDropdownOpen(false)}
-        />
-      )}
-    </nav>
+        {/* User/Guest Section */}
+        {isGuest ? (
+          <Button color="inherit" variant="outlined" onClick={() => navigate('/auth')}>
+            Sign In
+          </Button>
+        ) : isAuthenticated ? (
+          <div>
+            <IconButton
+              size="large"
+              aria-label="account of current user"
+              aria-controls="menu-appbar"
+              aria-haspopup="true"
+              onClick={handleMenu}
+              color="inherit"
+            >
+              <Avatar sx={{ bgcolor: user?.avatarColor || 'secondary.main', width: 32, height: 32 }}>
+                {user?.displayName?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || 'U'}
+              </Avatar>
+            </IconButton>
+            <Menu
+              id="menu-appbar"
+              anchorEl={anchorEl}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'right',
+              }}
+              keepMounted
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+              open={dropdownOpen}
+              onClose={handleClose}
+            >
+              <MenuItem onClick={() => handleNavigate('/stories')}>
+                <ListItemIcon>
+                  <Book fontSize="small" />
+                </ListItemIcon>
+                My Stories
+              </MenuItem>
+              <MenuItem onClick={() => handleNavigate('/profile')}>
+                <ListItemIcon>
+                  <Settings fontSize="small" />
+                </ListItemIcon>
+                Profile Settings
+              </MenuItem>
+              <Divider />
+              <MenuItem onClick={handleLogout}>
+                <ListItemIcon>
+                  <Logout fontSize="small" />
+                </ListItemIcon>
+                Sign Out
+              </MenuItem>
+            </Menu>
+          </div>
+        ) : null}
+      </Toolbar>
+    </AppBar>
   );
 }
 

@@ -2,6 +2,20 @@ import { useParams, useNavigate } from 'react-router-dom';
 import socketManager from '../utils/socket';
 import React, { useState, useEffect, useRef } from 'react';
 
+import { useAuth } from '../context/authContext';
+
+import { Container, Paper, Typography, Grid, Snackbar } from '@mui/material';
+import PlayerCard from './game/PlayerCard';
+import PeopleIcon from '@mui/icons-material/People';
+import GameHeader from './game/GameHeader';
+import GameContent from './game/GameContent';
+import GameStatusScreen from './game/GameStatusScreen';
+
+import {
+    Button, Box, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle
+} from '@mui/material';
+
+
 function GameRoom() {
     const { roomId } = useParams();
     const navigate = useNavigate();
@@ -13,6 +27,10 @@ function GameRoom() {
     const [error, setError] = useState('');
     const [connected, setConnected] = useState(false);
     const [connectionStatus, setConnectionStatus] = useState('Connecting...');
+
+    const [isSaving, setIsSaving] = useState(false);
+    const [isPublicConfirmOpen, setIsPublicConfirmOpen] = useState(false);
+    const { isGuest, token } = useAuth();
 
     useEffect(() => {
         // Prevent duplicate connections in React StrictMode
@@ -46,6 +64,14 @@ function GameRoom() {
         };
     }, [roomId, navigate]);
 
+    const handleOpenPublicConfirm = () => {
+            setIsPublicConfirmOpen(true);
+        
+    };
+
+    const handleClosePublicConfirm = () => {
+        setIsPublicConfirmOpen(false);
+    };
     const connectToRoom = async (data) => {
         console.log('🔍 connectToRoom called with:', data);
 
@@ -191,228 +217,125 @@ function GameRoom() {
         }
     };
 
-    const handleLeaveRoom = () => {
-        socketManager.disconnect();
-        navigate('/');
+
+    const handleSaveAndEndGame = async (isPublicChoice) => {
+        if (!token || isGuest) {
+            alert('Only registered users can save stories.');
+            return;
+        }
+
+        handleClosePublicConfirm(); 
+        setIsSaving(true);
+        try {
+            const storyContent = roomState.story || [];
+            const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/games/story`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    title: roomState.storyPrompt,
+                    content: storyContent,
+                    summary: roomState.finalStory,
+                    total_choices: storyContent.filter(p => p.type === 'choice').length,
+                    participants: roomState.players,
+                    is_public: isPublicChoice
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // On success, disconnect and navigate
+                socketManager.disconnect();
+                navigate('/stories');
+            } else {
+                alert('Failed to save story: ' + (data.error || 'Unknown error'));// Stop loading only if there's an error
+            }
+        } catch (error) {
+            console.error('Error saving the story:', error);
+            alert('An error occurred while saving the story.'); // Stop loading on error
+        }finally{
+            setIsSaving(false);
+        }
+        
     };
 
-    if (loading) {
-        return (
-            <div style={{ padding: '20px', textAlign: 'center' }}>
-                <h2>⏳ {connectionStatus}</h2>
-                <p>Room ID: {roomId}</p>
-                {gameData && <p>Player: {gameData.playerName} {gameData.isHost ? '(Host)' : ''}</p>}
 
-                <button
-                    onClick={() => navigate('/')}
-                    style={{ padding: '10px 20px', marginTop: '20px' }}
-                >
-                    Cancel & Return Home
-                </button>
-            </div>
+    const handleLeaveRoom = () => {
+        socketManager.disconnect();
+        navigate('/home');
+    };
+
+
+
+    // const lastTwoStoryParts = roomState.story?.slice(-2) || [];
+
+    if (loading || error || !roomState) {
+        return (
+            <GameStatusScreen
+                loading={loading}
+                error={error}
+                connectionStatus={connectionStatus}
+                roomId={roomId}
+                gameData={gameData}
+            />
         );
     }
-
-    if (error) {
-        return (
-            <div style={{ padding: '20px', textAlign: 'center' }}>
-                <h2>❌ Connection Error</h2>
-                <p style={{ color: 'red' }}>{error}</p>
-                <button onClick={() => navigate('/')} style={{ padding: '10px 20px' }}>
-                    Return Home
-                </button>
-            </div>
-        );
-    }
-
-    if (!roomState) {
-        return (
-            <div style={{ padding: '20px', textAlign: 'center' }}>
-                <h2>📡 Waiting for room data...</h2>
-                <p>Status: {connectionStatus}</p>
-            </div>
-        );
-    }
-
-    const lastTwoStoryParts = roomState.story?.slice(-2) || [];
-
 
     return (
-        <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-            {/* Header */}
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '20px',
-                padding: '15px',
-                background: '#f8f9fa',
-                border: '1px solid #dee2e6'
-            }}>
-                <div>
-                    <h2>🏰 Room: {roomId}</h2>
-                    <p>Status: {roomState.status} | Players: {roomState.players?.length || 0}</p>
-                </div>
-                <button
-                    onClick={handleLeaveRoom}
-                    style={{
-                        padding: '8px 15px',
-                        background: '#dc3545',
-                        color: 'white',
-                        border: 'none',
-                        cursor: 'pointer'
-                    }}
-                >
-                    Leave Room
-                </button>
-            </div>
-
-            {/* Players List */}
-            <div style={{ marginBottom: '20px' }}>
-                <h3>👥 Players ({roomState.players?.length || 0})</h3>
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                    gap: '10px'
-                }}>
-                    {roomState.players?.map((player) => (
-                        <div
-                            key={player.id}
-                            style={{
-                                padding: '10px',
-                                background: player.isHost ? '#d4edda' : '#e9ecef',
-                                border: `2px solid ${player.socketId ? '#28a745' : '#6c757d'}`,
-                                borderRadius: '5px'
-                            }}
-                        >
-                            <strong>{player.name}</strong>
-                            {player.isHost && ' 👑'}
-                            <br />
-                            <small style={{ color: player.socketId ? '#28a745' : '#6c757d' }}>
-                                {player.socketId ? '🟢 Online' : '⚫ Offline'}
-                            </small>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Game Content */}
-            {/* Game Content */}
-            {roomState.status === 'waiting' && (
-                <div style={{ textAlign: 'center', padding: '30px', background: '#fff3cd', border: '1px solid #ffeaa7' }}>
-                    <h3>⏳ Waiting to Start</h3>
-                    <p><strong>Story Prompt:</strong> {roomState.storyPrompt}</p>
-
-                    {gameData?.isHost ? (
-                        <button
-                            onClick={handleStartGame}
-                            style={{
-                                padding: '15px 30px',
-                                fontSize: '18px',
-                                background: '#007bff',
-                                color: 'white',
-                                border: 'none',
-                                cursor: 'pointer',
-                                marginTop: '15px'
-                            }}
-                        >
-                            🎮 Start Game
-                        </button>
-                    ) : (
-                        <p>Waiting for the host to start the game...</p>
-                    )}
-                </div>
-            )}
-
-            {(roomState.status === 'playing' || roomState.status === 'voting') && (
-                <div>
-                    <h3>📖 Story</h3>
-                    <div style={{
-                        padding: '20px',
-                        background: '#f8f9fa',
-                        border: '1px solid #dee2e6',
-                        marginBottom: '20px'
-                    }}>
-                        {lastTwoStoryParts.map((part, index) => (
-                            <div key={index} style={{ marginBottom: '15px' }}>
-                                <strong>{part.type === 'prompt' ? '📝 Prompt' : (part.type === 'choice' ? '👉 Choice' : '📖 Story')}:</strong>
-                                <p>{part.content}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {roomState.status === 'voting' && roomState.currentChoices && (
-                <div>
-                    <h3>🗳️ Vote for Next Action</h3>
-                    <div style={{
-                        display: 'grid',
-                        gap: '10px',
-                        marginTop: '15px'
-                    }}>
-                        {roomState.currentChoices.map((choice, index) => (
-                            <button
-                                key={index}
-                                onClick={() => handleVote(index)}
-                                style={{
-                                    padding: '15px',
-                                    textAlign: 'left',
-                                    background: '#e9ecef',
-                                    border: '1px solid #ced4da',
-                                    cursor: 'pointer'
-                                }}
-                                onMouseOver={(e) => e.target.style.background = '#dee2e6'}
-                                onMouseOut={(e) => e.target.style.background = '#e9ecef'}
-                            >
-                                <strong>Option {index + 1}:</strong> {choice}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {roomState.status === 'completed' && (
-                <div>
-                    <h3>📜 The Full Saga</h3>
-                    <div style={{
-                        padding: '20px',
-                        background: '#f8f9fa',
-                        border: '1px solid #dee2e6',
-                        marginBottom: '20px',
-                        whiteSpace: 'pre-wrap' // Helps in rendering paragraphs correctly
-                    }}>
-                        {/* Display the consolidated final story */}
-                        {roomState.finalStory ? (
-                            <p>{roomState.finalStory}</p>
-                        ) : (
-                            // Fallback for older games or if consolidation fails
-                            roomState.story?.map((part, index) => (
-                                <div key={index} style={{ marginBottom: '15px' }}>
-                                    <strong>{part.type === 'prompt' ? '📝 Prompt' : (part.type === 'choice' ? '👉 Choice' : '📖 Story')}:</strong>
-                                    <p>{part.content}</p>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* Connection Status */}
-            <div style={{
-                position: 'fixed',
-                bottom: '10px',
-                right: '10px',
-                padding: '5px 10px',
-                background: connected ? '#d4edda' : '#f8d7da',
-                color: connected ? '#155724' : '#721c24',
-                fontSize: '12px',
-                border: `1px solid ${connected ? '#c3e6cb' : '#f5c6cb'}`
-            }}>
-                {connected ? '🟢 Connected' : '🔴 Disconnected'}
-            </div>
-        </div>
+         <>
+            <Container maxWidth="lg" sx={{ my: 4 }}>
+                <GameHeader roomId={roomId} roomState={roomState} onLeave={handleLeaveRoom} />
+                <Grid container spacing={3} sx={{ mt: 1 }}>
+                    <Grid item xs={12} md={8}>
+                        <GameContent
+                            roomState={roomState}
+                            gameData={gameData}
+                            onStartGame={handleStartGame}
+                            onVote={handleVote}
+                            onSaveAndEnd={handleOpenPublicConfirm}
+                            isSaving={isSaving}
+                            isGuest={isGuest}
+                        />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                        <Paper variant="outlined" sx={{ p: 2, position: 'sticky', top: '88px' }}>
+                            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                <PeopleIcon sx={{ mr: 1 }} /> Players ({roomState.players?.length || 0})
+                            </Typography>
+                            <Grid container spacing={2}>
+                                {roomState.players?.map((player) => (
+                                    <Grid item xs={12} key={player.id}>
+                                        <PlayerCard player={player} />
+                                    </Grid>
+                                ))}
+                            </Grid>
+                        </Paper>
+                    </Grid>
+                </Grid>
+            </Container>
+            <Dialog open={isPublicConfirmOpen} onClose={handleClosePublicConfirm}>
+                <DialogTitle>Share Your Saga?</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Would you like to make this story public for others to read?
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => handleSaveAndEndGame(false)} color="secondary">
+                        Keep it Private
+                    </Button>
+                    <Button onClick={() => handleSaveAndEndGame(true)} variant="contained" autoFocus>
+                        Make it Public
+                    </Button>
+                </DialogActions>
+            </Dialog>
+            <Snackbar open={!connected} message="🔴 Disconnected from server..." anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} />
+        </>
     );
 }
+
 
 export default GameRoom;

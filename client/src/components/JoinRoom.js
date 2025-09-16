@@ -1,10 +1,28 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  Container,
+  Paper,
+  TextField,
+  Button,
+  Typography,
+  Box,
+  Alert,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  CircularProgress,
+} from '@mui/material';
+import { LoadingButton } from '@mui/lab';
+import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import LightbulbIcon from '@mui/icons-material/Lightbulb';
 
 function JoinRoom() {
   const [formData, setFormData] = useState({
     roomId: '',
-    playerName: ''
+    playerName: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -12,9 +30,9 @@ function JoinRoom() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value.toUpperCase() // Room IDs are uppercase
+      [name]: name === 'roomId' ? value.toUpperCase() : value,
     }));
   };
 
@@ -28,27 +46,23 @@ function JoinRoom() {
         throw new Error('Please fill in all fields');
       }
 
-      // Check if room exists first
-      const response = await fetch(`http://localhost:5000/api/games/room/${formData.roomId.trim()}`);
+      const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/games/room/${formData.roomId.trim()}`);
       const data = await response.json();
 
       if (!data.success) {
-        throw new Error('Room not found');
+        throw new Error('Room not found. Please check the code and try again.');
       }
 
-      // Store room data for the game room (no playerId = new player)
       localStorage.setItem('gameData', JSON.stringify({
         roomId: formData.roomId.trim(),
-        playerId: null, // Will be assigned when joining via socket
+        playerId: null,
         playerName: formData.playerName.trim(),
-        isHost: false
+        isHost: false,
       }));
 
-      console.log('Room found, joining:', data);
       navigate(`/room/${formData.roomId.trim()}`);
 
     } catch (error) {
-      console.error('Error joining room:', error);
       setError(error.message);
     } finally {
       setLoading(false);
@@ -56,99 +70,98 @@ function JoinRoom() {
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '500px', margin: '0 auto' }}>
-      <h2>🚪 Join Existing Room</h2>
-      <p>Enter the room code and your name to join the story</p>
-      
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Room Code:</label><br/>
-          <input
-            type="text"
+    <Container component="main" maxWidth="sm" sx={{ mt: 8, mb: 4 }}>
+      <Paper elevation={6} sx={{ p: 4, borderRadius: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <MeetingRoomIcon color="primary" sx={{ fontSize: 40 }} />
+          <Typography component="h1" variant="h4" sx={{ mt: 2 }}>
+            Join an Existing Story
+          </Typography>
+          <Typography color="text.secondary" sx={{ mb: 3 }}>
+            Enter the room code and your name to join the adventure.
+          </Typography>
+        </Box>
+
+        <Box component="form" onSubmit={handleSubmit} noValidate>
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="roomId"
+            label="Room Code"
             name="roomId"
+            placeholder="e.g. ABC123DE"
             value={formData.roomId}
             onChange={handleInputChange}
-            placeholder="Enter room code (e.g. ABC123DE)"
-            maxLength={8}
-            style={{ 
-              width: '100%', 
-              padding: '12px', 
-              marginTop: '5px',
-              fontSize: '18px',
-              fontFamily: 'monospace',
-              textAlign: 'center',
-              letterSpacing: '2px'
+            inputProps={{
+              maxLength: 8,
+              style: {
+                fontFamily: 'monospace',
+                textAlign: 'center',
+                fontSize: '1.25rem',
+                letterSpacing: '3px',
+              },
             }}
-            required
           />
-          <small style={{ color: '#666' }}>
-            8-character room code provided by the host
-          </small>
-        </div>
-
-        <div style={{ marginBottom: '15px' }}>
-          <label>Your Name:</label><br/>
-          <input
-            type="text"
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="playerName"
+            label="Your Name"
             name="playerName"
+            placeholder="Enter your display name"
             value={formData.playerName}
-            onChange={(e) => setFormData(prev => ({ ...prev, playerName: e.target.value }))}
-            placeholder="Enter your name..."
-            maxLength={20}
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-            required
+            onChange={handleInputChange}
+            inputProps={{ maxLength: 20 }}
           />
-        </div>
 
-        {error && (
-          <div style={{ color: 'red', marginBottom: '15px', padding: '10px', background: '#ffeaea', border: '1px solid #ffcccc' }}>
-            ❌ {error}
-          </div>
-        )}
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {error}
+            </Alert>
+          )}
 
-        <div>
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            disabled={loading}
-            style={{ 
-              marginRight: '10px', 
-              padding: '10px 20px',
-              background: '#6c757d',
-              color: 'white',
-              border: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            Cancel
-          </button>
-          
-          <button
-            type="submit"
-            disabled={loading}
-            style={{ 
-              padding: '10px 20px', 
-              background: loading ? '#ccc' : '#28a745', 
-              color: 'white',
-              border: 'none',
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {loading ? '⏳ Joining...' : '🚀 Join Room'}
-          </button>
-        </div>
-      </form>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3, gap: 1 }}>
+            <Button
+              variant="outlined"
+              onClick={() => navigate('/home')}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <LoadingButton
+              type="submit"
+              variant="contained"
+              loading={loading}
+              loadingIndicator={<CircularProgress size={24} />}
+            >
+              Join Room
+            </LoadingButton>
+          </Box>
+        </Box>
+      </Paper>
 
-      <div style={{ marginTop: '30px', padding: '15px', background: '#f8f9fa', border: '1px solid #dee2e6' }}>
-        <h4>💡 How to join:</h4>
-        <ol>
-          <li>Get the room code from your host</li>
-          <li>Enter the 8-character code above</li>
-          <li>Choose your display name</li>
-          <li>Click "Join Room" to enter the story</li>
-        </ol>
-      </div>
-    </div>
+      <Paper variant="outlined" sx={{ mt: 4, p: 3, backgroundColor: 'action.hover' }}>
+         <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+            <LightbulbIcon color="primary" sx={{ mr: 1 }} /> How to Join
+          </Typography>
+        <List dense>
+          {[
+            'Get the 8-character room code from your host.',
+            'Enter the code and your desired display name above.',
+            'Click "Join Room" to enter the story!',
+          ].map((text, index) => (
+            <ListItem key={index}>
+              <ListItemIcon sx={{ minWidth: '30px' }}>
+                <ArrowForwardIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary={text} />
+            </ListItem>
+          ))}
+        </List>
+      </Paper>
+    </Container>
   );
 }
 

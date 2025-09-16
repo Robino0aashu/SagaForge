@@ -1,218 +1,185 @@
 import React, { useState } from 'react';
+import { useAuth } from '../context/authContext';
+import { 
+  Container, 
+  Paper, 
+  TextField, 
+  Button, 
+  Typography, 
+  Tabs, 
+  Tab, 
+  Box, 
+  Avatar,
+  Grid,
+  Link as MuiLink // Renaming to avoid conflict with React Router's Link
+} from '@mui/material';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/authContext.js';
-import './AuthPage.css';
 
 function AuthPage() {
-  const [mode, setMode] = useState('login'); // 'login' or 'register'
-  const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    displayName: ''
-  });
-  const [loading, setLoading] = useState(false);
+  const [isLogin, setIsLogin] = useState(true);
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
   
-  const { login, register, continueAsGuest } = useAuth();
   const navigate = useNavigate();
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const { login, register, continueAsGuest } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    try {
-      let result;
-      
-      if (mode === 'login') {
-        if (!formData.username || !formData.password) {
-          throw new Error('Please fill in all fields');
-        }
-        result = await login(formData.username, formData.password);
+    setError(''); // Reset error on new submission
+    let result;
+    if (isLogin) {
+      result = await login(username, password);
+      if (result) {
+        navigate('/home');
       } else {
-        if (!formData.username || !formData.email || !formData.password) {
-          throw new Error('Please fill in all fields');
-        }
-        result = await register(
-          formData.username, 
-          formData.email, 
-          formData.password, 
-          formData.displayName
-        );
+        setError('Invalid username or password.');
       }
-
+    } else {
+      result = await register(username, email, password, displayName);
       if (result.success) {
         navigate('/home');
       } else {
-        setError(result.error);
+        setError(result.error || 'Registration failed.');
       }
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
     }
   };
+  
+  const handleTabChange = (event, newValue) => {
+    setIsLogin(newValue === 0);
+    setError(''); // Reset errors when switching tabs
+  };
 
-  const handleGuestContinue = () => {
+  const handleGuest = () => {
     continueAsGuest();
     navigate('/home');
-  };
-
-  const toggleMode = () => {
-    setMode(mode === 'login' ? 'register' : 'login');
-    setError('');
-    setFormData({
-      username: '',
-      email: '',
-      password: '',
-      displayName: ''
-    });
-  };
+  }
 
   return (
-    <div className="auth-page">
-      <div className="auth-container">
-        <div className="auth-header">
-          <h1>🏰 SagaForge</h1>
-          <p>Collaborative Storytelling Adventures</p>
-        </div>
+    <Container component="main" maxWidth="xs" sx={{ mt: 8, mb: 4 }}>
+      <Paper 
+        elevation={6} 
+        sx={{ 
+          p: 4, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center',
+          borderRadius: 2 // Softer corners
+        }}
+      >
+        <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
+          <LockOutlinedIcon />
+        </Avatar>
+        <Typography component="h1" variant="h5">
+          {isLogin ? 'Sign In' : 'Create Account'}
+        </Typography>
+        
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', width: '100%', mb: 2 }}>
+          <Tabs value={isLogin ? 0 : 1} onChange={handleTabChange} centered variant="fullWidth">
+            <Tab label="Login" id="login-tab" />
+            <Tab label="Register" id="register-tab" />
+          </Tabs>
+        </Box>
 
-        <div className="auth-content">
-          {/* Guest Option */}
-          <div className="guest-section">
-            <h2>🚀 Quick Start</h2>
-            <p>Jump right into collaborative storytelling</p>
-            <button 
-              onClick={handleGuestContinue}
-              className="btn btn-guest"
-              disabled={loading}
-            >
-              Continue as Guest
-            </button>
-            <small>Note: Stories won't be saved to your profile as a guest</small>
-          </div>
+        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+          {/* Fields for Login & Register */}
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="username"
+            label="Username"
+            name="username"
+            autoComplete="username"
+            autoFocus
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
 
-          <div className="divider">
-            <span>OR</span>
-          </div>
+          {/* Fields for Register Only */}
+          {!isLogin && (
+            <>
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                id="displayName"
+                label="Display Name"
+                name="displayName"
+                autoComplete="name"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                id="email"
+                label="Email Address"
+                name="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </>
+          )}
 
-          {/* Login/Register Form */}
-          <div className="auth-form-section">
-            <h2>
-              {mode === 'login' ? '🔐 Sign In' : '📝 Create Account'}
-            </h2>
-            <p>
-              {mode === 'login' 
-                ? 'Access your saved stories and profile'
-                : 'Join the community and save your adventures'
-              }
-            </p>
+          {/* Password Field */}
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            name="password"
+            label="Password"
+            type="password"
+            id="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
-            <form onSubmit={handleSubmit} className="auth-form">
-              <div className="form-group">
-                <input
-                  type="text"
-                  name="username"
-                  placeholder="Username"
-                  value={formData.username}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+          {error && (
+            <Typography color="error" variant="body2" align="center" sx={{ mt: 2 }}>
+              {error}
+            </Typography>
+          )}
 
-              {mode === 'register' && (
-                <>
-                  <div className="form-group">
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="Email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <input
-                      type="text"
-                      name="displayName"
-                      placeholder="Display Name (Optional)"
-                      value={formData.displayName}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </>
-              )}
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            sx={{ mt: 3, mb: 2 }}
+          >
+            {isLogin ? 'Sign In' : 'Sign Up'}
+          </Button>
 
-              <div className="form-group">
-                <input
-                  type="password"
-                  name="password"
-                  placeholder="Password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              {error && (
-                <div className="error-message">
-                  ❌ {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={loading}
-              >
-                {loading ? '⏳ Please wait...' : 
-                 mode === 'login' ? 'Sign In' : 'Create Account'}
-              </button>
-            </form>
-
-            <div className="auth-toggle">
-              <button 
-                onClick={toggleMode}
-                className="btn btn-link"
-                disabled={loading}
-              >
-                {mode === 'login' 
-                  ? "Don't have an account? Sign up"
-                  : "Already have an account? Sign in"
-                }
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="auth-footer">
-          <div className="features-preview">
-            <div className="feature-item">
-              <span>🎭</span>
-              <small>Collaborative Writing</small>
-            </div>
-            <div className="feature-item">
-              <span>🗳️</span>
-              <small>Democratic Choices</small>
-            </div>
-            <div className="feature-item">
-              <span>⚡</span>
-              <small>Real-time Magic</small>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+          <Grid container>
+            <Grid item xs>
+              {/* This is a placeholder, you can add functionality later */}
+              <MuiLink href="#" variant="body2">
+                Forgot password?
+              </MuiLink>
+            </Grid>
+            <Grid item>
+              <MuiLink component="button" variant="body2" onClick={() => setIsLogin(!isLogin)}>
+                {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
+              </MuiLink>
+            </Grid>
+          </Grid>
+        </Box>
+      </Paper>
+      <Button
+          fullWidth
+          variant="text"
+          onClick={handleGuest}
+          sx={{ mt: 2 }}
+        >
+          Or Continue as a Guest
+        </Button>
+    </Container>
   );
 }
 

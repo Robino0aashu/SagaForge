@@ -2,6 +2,9 @@ import { Router } from 'express';
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { query } from '../config/database.js';
+
+import { authenticateToken } from '../middleware/authMiddleware.js'; 
+
 const router = Router();
 
 const generateToken = (userId) => {
@@ -9,24 +12,6 @@ const generateToken = (userId) => {
     expiresIn: process.env.JWT_EXPIRES_IN
   });
 };
-
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
-  if (!token) {
-    return res.status(401).json({ error: 'Access token required' });
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Invalid token' });
-    }
-    req.user = user;
-    next();
-  });
-};
-
 
 // User registration
 router.post('/register', async (req, res) => {
@@ -101,7 +86,7 @@ router.post('/login', async (req, res) => {
     );
 
     if (result.rows.length == 0) {
-      return res.status(401), json({
+      return res.status(401).json({
         error: "Invalid Credentials"
       });
     }
@@ -166,5 +151,23 @@ router.get('/profile', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch profile' });
   }
 });
+
+router.get('/stories', authenticateToken, async (req, res) => {
+    try {
+        const result = await query(
+            'SELECT id, title, summary, created_at FROM stories WHERE created_by = $1 ORDER BY created_at DESC',
+            [req.user.userId]
+        );
+        res.json({
+            success: true,
+            stories: result.rows
+        });
+    } catch (error) {
+        console.error('Error fetching user stories:', error);
+        res.status(500).json({ error: 'Failed to fetch stories' });
+    }
+});
+
+
 
 export default router;

@@ -3,6 +3,8 @@ import { v4 as uuidv4, parse } from 'uuid';
 import { getRedisClient } from '../config/redis.js';
 import { query } from '../config/database.js';
 
+import { authenticateToken } from '../middleware/authMiddleware.js';
+
 const router = Router();
 
 //Create a new room!!
@@ -138,7 +140,7 @@ router.get('/story/share/:shareToken', async (req, res)=>{
             [shareToken]
         );
         if(result.rows.length ==0){
-            return res.status(404).JSON({error: "Story not found"});
+            return res.status(404).json({error: "Story not found"});
         }
         res.json({
             success: true,
@@ -150,5 +152,30 @@ router.get('/story/share/:shareToken', async (req, res)=>{
         res.status(500).json({ error: 'Failed to fetch story' });
     }
 });
+
+router.post('/story', authenticateToken, async (req, res) => {
+    try {
+        const { title, content, summary, total_choices, participants, is_public } = req.body;
+        const userId = req.user.userId; // This will now work correctly
+
+        const result = await query(
+            `INSERT INTO stories (title, content, summary, total_choices, created_by, participants, is_public, completed_at, share_token)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8)
+             RETURNING *`,
+            [title, JSON.stringify(content), summary, total_choices, userId, JSON.stringify(participants), is_public, uuidv4()]
+        );
+
+        res.status(201).json({
+            success: true,
+            story: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Error saving the story:', error);
+        res.status(500).json({ error: 'Failed to save story' });
+    }
+});
+
+
 
 export default router;

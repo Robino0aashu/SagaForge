@@ -1,0 +1,62 @@
+.landing-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+  text-align: center;
+  color: white;
+  /* Replace this with your background image */
+  background: #1a1a2e; /* Placeholder background color */
+  /* For a background image, use this: */
+  /* background-image: url('/path/to/your/background.jpg'); */
+  background-size: cover;
+  background-position: center;
+}
+
+.landing-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Dark overlay for text readability */
+}
+
+.landing-content {
+  position: relative; /* Ensures content is above the overlay */
+  z-index: 1;
+  max-width: 800px;
+  padding: 20px;
+}
+
+.landing-title {
+  font-size: 4.5rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
+}
+
+.landing-description {
+  font-size: 1.25rem;
+  line-height: 1.6;
+  margin-bottom: 40px;
+}
+
+.landing-button {
+  padding: 15px 30px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #fff;
+  background-color: #007bff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.landing-button:hover {
+  background-color: #0056b3;
+  transform: translateY(-2px);
+}
