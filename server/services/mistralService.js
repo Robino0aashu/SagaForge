@@ -139,3 +139,30 @@ const parseChoices = (aiResponse) => {
         "Try a creative solution"
     ];
 };
+
+// Add this new function to the end of mistralService.js
+
+export const consolidateStory = async (storyParts) => {
+    try {
+        // Filter out the 'choice' parts and join the narrative content
+        const narrative = storyParts
+            .filter(part => part.type === 'narrative' || part.type === 'prompt' || part.type === 'conclusion')
+            .map(part => part.content)
+            .join(' ');
+
+        const prompt = `You are a story editor. The following is a collection of story segments from a collaborative game. Rewrite them into a single, flowing, and cohesive short story. Remove any game-related text or prompts. The story should be presented as a complete narrative. Here is the content: ${narrative}`;
+
+        const response = await mistral.chat.complete({
+            model: 'mistral-small-latest',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.7,
+            max_tokens: 1000 // Allow for a longer final story
+        });
+
+        return response.choices[0].message.content.trim();
+    } catch (error) {
+        console.error('Error consolidating story with Mistral:', error);
+        // Fallback to just joining the story parts if AI fails
+        return storyParts.map(part => part.content).join('\n\n');
+    }
+};

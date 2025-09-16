@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+
 function CreateRoom() {
   const [formData, setFormData] = useState({
     hostName: '',
@@ -29,11 +30,11 @@ function CreateRoom() {
         throw new Error('Please fill in all fields');
       }
 
-      if (formData.numberOfRounds < 1 || formData.numberOfRounds > 20) {
-        throw new Error('Number of rounds must be between 1 and 20');
+      if (formData.numberOfRounds < 3 || formData.numberOfRounds > 15) {
+        throw new Error('Number of rounds must be between 3 and 15');
       }
 
-      const response = await fetch('http://localhost:5000/api/games/create-room', {
+      const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/games/create-room`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -129,7 +130,7 @@ function CreateRoom() {
             required
           />
           <small style={{ color: '#666' }}>
-            Choose between 1-20 rounds. Each round includes voting and story progression.
+            Choose between 3-15 rounds. Each round includes voting and story progression.
           </small>
         </div>
 

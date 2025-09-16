@@ -3,11 +3,10 @@ import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { generateStoryPart, generateChoices } from '../services/mistralService.js';
+import { generateStoryPart, generateChoices, consolidateStory } from '../services/mistralService.js';
 
 const VOTING_TIMEOUT = process.env.VOTING_TIMEOUT;
 
-// Updated processVotingResults function with rounds tracking:
 const processVotingResults = async (roomId, room, io, redis) => {
     try {
         // Count votes
@@ -65,6 +64,9 @@ const processVotingResults = async (roomId, room, io, redis) => {
                 timestamp: new Date().toISOString(),
                 round: room.currentRound
             });
+
+            console.log('✍️ Consolidating the final story...');
+            room.finalStory = await consolidateStory(room.story);
 
             room.status = 'completed';
             room.completedAt = new Date().toISOString();
