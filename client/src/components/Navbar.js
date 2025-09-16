@@ -21,10 +21,13 @@ function Navbar() {
   return (
     <nav className="navbar">
       <div className="navbar-content">
-        <div className="navbar-brand">
-          <span className="navbar-logo">🏰</span>
-          <span className="navbar-title">SagaForge</span>
-        </div>
+        <button className='user-button'>
+          <div className="navbar-brand" onClick={() => navigate('/home')}>
+            <span className="navbar-logo">🏰</span>
+            <span className="navbar-title">SagaForge</span>
+          </div>
+        </button>
+
 
         <div className="navbar-user">
           {isGuest ? (
@@ -90,9 +93,14 @@ function Navbar() {
                     My Stories
                   </button>
 
-                  <button className="dropdown-item" disabled>
+                  <button className="dropdown-item" 
+                    onClick={()=>{
+                      navigate('profile');
+                      setDropdownOpen(false);
+                    }}  
+                  >
                     <span>⚙️</span>
-                    Profile Settings (Coming Soon)
+                    Profile
                   </button>
 
                   <div className="dropdown-divider"></div>
