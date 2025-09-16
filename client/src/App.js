@@ -9,6 +9,7 @@ import JoinRoom from './components/JoinRoom';
 import GameRoom from './components/GameRoom';
 import MyStories from './components/MyStories';
 import Profile from './components/ProfileSettings';
+import LandingPage from './components/LandingPage';
 import './App.css';
 
 // Protected Route component that checks if user is authenticated or guest
@@ -36,86 +37,38 @@ function ProtectedRoute({ children }) {
 }
 
 function AppContent() {
-  const { loading, isAuthenticated, isGuest } = useAuth();
+  const { loading, isAuthenticated } = useAuth();
 
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh'
-      }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <h2>⏳ Loading...</h2>
       </div>
     );
   }
-
-  const showNavbar = isAuthenticated || isGuest;
+  
+  // Always show Navbar if authenticated, otherwise only on non-landing pages
+  const showNavbar = isAuthenticated;
 
   return (
     <div className="App">
       {showNavbar && <Navbar />}
-
+      
       <Routes>
-        <Route path="/auth" element={
-          isAuthenticated || isGuest ? <Navigate to="/home" replace /> : <AuthPage />
-        } />
-        <Route path="/home" element={
-          <ProtectedRoute>
-            <>
-              <header className="App-header">
-                <h1>🏰 SagaForge</h1>
-                <p>Collaborative Storytelling Game</p>
-              </header>
-              <main className="App-main">
-                <Home />
-              </main>
-            </>
-          </ProtectedRoute>
-        } />
-        <Route path="/create" element={
-          <ProtectedRoute>
-            <>
-              <header className="App-header">
-                <h1>🏰 SagaForge</h1>
-                <p>Collaborative Storytelling Game</p>
-              </header>
-              <main className="App-main">
-                <CreateRoom />
-              </main>
-            </>
-          </ProtectedRoute>
-        } />
-        <Route path="/join" element={
-          <ProtectedRoute>
-            <>
-              <header className="App-header">
-                <h1>🏰 SagaForge</h1>
-                <p>Collaborative Storytelling Game</p>
-              </header>
-              <main className="App-main">
-                <JoinRoom />
-              </main>
-            </>
-          </ProtectedRoute>
-        } />
-        <Route path="/room/:roomId" element={
-          <ProtectedRoute>
-            <GameRoom />
-          </ProtectedRoute>
-        } />
-        <Route path="/stories" element={
-          <ProtectedRoute>
-            <MyStories />
-          </ProtectedRoute>
-        } />
-        <Route path='profile' element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }/>
-        <Route path="/" element={<Navigate to="/auth" replace />} />
+        {/* --- Public Routes --- */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/auth" element={isAuthenticated ? <Navigate to="/home" replace /> : <AuthPage />} />
+
+        {/* --- Protected Routes --- */}
+        <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/create" element={<ProtectedRoute><CreateRoom /></ProtectedRoute>} />
+        <Route path="/join" element={<ProtectedRoute><JoinRoom /></ProtectedRoute>} />
+        <Route path="/room/:roomId" element={<ProtectedRoute><GameRoom /></ProtectedRoute>} />
+        <Route path="/stories" element={<ProtectedRoute><MyStories /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+
+        {/* Fallback redirect */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
   );
