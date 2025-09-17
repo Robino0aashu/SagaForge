@@ -17,6 +17,7 @@ server/node_modules/
 # Ignore environment files in the server
 server/.env
 
+server/ca.pem
 
 # ----------------------------------------------------------------
 # Client (React / Vite) specific

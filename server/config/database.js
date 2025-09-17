@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 let pool;
+import { readFileSync } from "fs";
 
 export const connectPostgreSQL = async()=>{
     try{
@@ -12,6 +13,11 @@ export const connectPostgreSQL = async()=>{
             max: 20,
             idleTimeoutMillis: 30000,
             connectionTimeoutMillis: 2000,
+
+            ssl: {
+                rejectUnauthorized: true,
+                ca: readFileSync("ca.pem").toString(),
+            }
         });
 
         const client=await pool.connect();
