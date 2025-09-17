@@ -63,6 +63,7 @@ export const AuthProvider = ({ children }) => {
         setUser(profileData.user);
         // THE FIX: Persist user data after profile fetch
         localStorage.setItem('userData', JSON.stringify(profileData.user));
+        setIsGuest(false);
       } else {
         logout();
         throw new Error(profileData.error || 'Could not fetch profile');

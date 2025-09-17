@@ -155,7 +155,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
 router.get('/stories', authenticateToken, async (req, res) => {
     try {
         const result = await query(
-            'SELECT id, title, summary, created_at FROM stories WHERE created_by = $1 ORDER BY created_at DESC',
+            'SELECT id, title, summary, created_at, is_public FROM stories WHERE created_by = $1 ORDER BY created_at DESC',
             [req.user.userId]
         );
         res.json({
