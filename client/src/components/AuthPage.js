@@ -5,13 +5,14 @@ import {
   Paper, 
   TextField, 
   Button, 
+  CircularProgress,
   Typography, 
   Tabs, 
   Tab, 
   Box, 
   Avatar,
   Grid,
-  Link as MuiLink // Renaming to avoid conflict with React Router's Link
+  Link as MuiLink
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { useNavigate } from 'react-router-dom';
@@ -22,35 +23,32 @@ function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [error, setError] = useState('');
   
   const navigate = useNavigate();
-  const { login, register, continueAsGuest } = useAuth();
+  // CHANGED: Get error and loading states from the useAuth context
+  const { login, register, continueAsGuest, error, clearError, loading } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(''); // Reset error on new submission
     let result;
     if (isLogin) {
       result = await login(username, password);
       if (result) {
         navigate('/home');
-      } else {
-        setError('Invalid username or password.');
       }
+      // Error handling is now done automatically by the context
     } else {
       result = await register(username, email, password, displayName);
       if (result.success) {
         navigate('/home');
-      } else {
-        setError(result.error || 'Registration failed.');
       }
+      // Error handling is now done automatically by the context
     }
   };
   
   const handleTabChange = (event, newValue) => {
     setIsLogin(newValue === 0);
-    setError(''); // Reset errors when switching tabs
+    clearError();
   };
 
   const handleGuest = () => {
@@ -67,7 +65,7 @@ function AuthPage() {
           display: 'flex', 
           flexDirection: 'column', 
           alignItems: 'center',
-          borderRadius: 2 // Softer corners
+          borderRadius: 2
         }}
       >
         <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
@@ -141,24 +139,26 @@ function AuthPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
 
+          {/* This will now display the error message from the AuthContext */}
           {error && (
             <Typography color="error" variant="body2" align="center" sx={{ mt: 2 }}>
               {error}
             </Typography>
           )}
 
+          {/* CHANGED: Button is now disabled and shows a spinner while loading */}
           <Button
             type="submit"
             fullWidth
             variant="contained"
             sx={{ mt: 3, mb: 2 }}
+            disabled={loading}
           >
-            {isLogin ? 'Sign In' : 'Sign Up'}
+            {loading ? <CircularProgress size={24} color="inherit" /> : (isLogin ? 'Sign In' : 'Sign Up')}
           </Button>
 
           <Grid container>
             <Grid item xs>
-              {/* This is a placeholder, you can add functionality later */}
               <MuiLink href="#" variant="body2">
                 Forgot password?
               </MuiLink>
@@ -172,13 +172,13 @@ function AuthPage() {
         </Box>
       </Paper>
       <Button
-          fullWidth
-          variant="text"
-          onClick={handleGuest}
-          sx={{ mt: 2 }}
-        >
-          Or Continue as a Guest
-        </Button>
+        fullWidth
+        variant="text"
+        onClick={handleGuest}
+        sx={{ mt: 2 }}
+      >
+        Or Continue as a Guest
+      </Button>
     </Container>
   );
 }

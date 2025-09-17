@@ -15,10 +15,14 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
-  const [, setError] = useState(null);
+  const [error, setError] = useState(null); // Now used and exposed
 
-  // Initialize auth state from localStorage on app start
+  const clearError = () => {
+    setError(null);
+  };
+
   useEffect(() => {
+    // ... (no changes here, this part is perfect)
     const storedToken = localStorage.getItem('authToken');
     const storedUser = localStorage.getItem('userData');
     const guestMode = localStorage.getItem('guestMode');
@@ -29,14 +33,13 @@ export const AuthProvider = ({ children }) => {
     } else if (guestMode === 'true') {
       setIsGuest(true);
     }
-
     setLoading(false);
   }, []);
 
   const login = async (username, password) => {
     setLoading(true);
+    setError(null); // Reset error on new attempt
     try {
-      // Step 1: Log in to get the token
       const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -44,59 +47,53 @@ export const AuthProvider = ({ children }) => {
       });
 
       const data = await response.json();
-      if (!data.success) {
+      if (!response.ok) { // A more robust check for HTTP errors
         throw new Error(data.error || 'Login failed');
       }
 
       localStorage.setItem('authToken', data.token);
       setToken(data.token);
 
-      // Step 2: Use the token to get the user's profile
       const profileResponse = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/users/profile`, {
-        headers: {
-          'Authorization': `Bearer ${data.token}`,
-        },
+        headers: { 'Authorization': `Bearer ${data.token}` },
       });
 
       const profileData = await profileResponse.json();
       if (profileData.success) {
         setUser(profileData.user);
-        // THE FIX: Persist user data after profile fetch
         localStorage.setItem('userData', JSON.stringify(profileData.user));
         setIsGuest(false);
+        return true;
       } else {
         logout();
         throw new Error(profileData.error || 'Could not fetch profile');
       }
-
-      setLoading(false);
-      return true;
-
-    } catch (error) {
-      console.error('Login error:', error);
-      setError(error.message);
-      setLoading(false);
+    } catch (err) {
+      console.error('Login error:', err);
+      setError(err.message);
       return false;
+    } finally {
+      // ADDED: finally block to guarantee loading is set to false
+      setLoading(false);
     }
   };
 
   const register = async (username, email, password, displayName) => {
+    // ADDED: Loading state and error reset
+    setLoading(true);
+    setError(null);
     try {
       const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/users/register`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ username, email, password, displayName })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password, displayName }),
       });
 
       const data = await response.json();
-
-      if (!data.success) {
+      if (!response.ok) { // A more robust check for HTTP errors
         throw new Error(data.error || 'Registration failed');
       }
 
-      // Store auth data
       localStorage.setItem('authToken', data.token);
       localStorage.setItem('userData', JSON.stringify(data.user));
       localStorage.removeItem('guestMode');
@@ -104,11 +101,14 @@ export const AuthProvider = ({ children }) => {
       setToken(data.token);
       setUser(data.user);
       setIsGuest(false);
-
       return { success: true };
-    } catch (error) {
-      console.error('Registration error:', error);
-      return { success: false, error: error.message };
+    } catch (err) {
+      console.error('Registration error:', err);
+      setError(err.message); // Set the error state
+      return { success: false, error: err.message };
+    } finally {
+      // ADDED: finally block
+      setLoading(false);
     }
   };
 
@@ -137,6 +137,8 @@ export const AuthProvider = ({ children }) => {
     token,
     isGuest,
     loading,
+    error,
+    clearError,
     login,
     register,
     continueAsGuest,

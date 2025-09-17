@@ -14,25 +14,21 @@ import './App.css';
 
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-
 const darkTheme = createTheme({
   palette: {
     mode: 'dark',
   },
 });
 
-// Protected Route component that checks if user is authenticated or guest
+// Protected Route component
 function ProtectedRoute({ children }) {
-  const { loading, isAuthenticated, isGuest } = useAuth();
+  // CHANGED: Use `initialLoading` to prevent this from showing during login/register actions.
+  // We rename it to `loading` here for convenience within this component.
+  const { initialLoading: loading, isAuthenticated, isGuest } = useAuth();
 
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh'
-      }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <h2>⏳ Loading...</h2>
       </div>
     );
@@ -45,10 +41,11 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-
 function AppContent() {
-  const { loading, isAuthenticated } = useAuth();
+  // CHANGED: Use `initialLoading` here as well.
+  const { initialLoading: loading, isAuthenticated } = useAuth();
   const location = useLocation();
+
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -57,8 +54,7 @@ function AppContent() {
     );
   }
   
-  // Always show Navbar if authenticated, otherwise only on non-landing pages
-  const showNavbar = location.pathname !== '/';;
+  const showNavbar = location.pathname !== '/';
 
   return (
     <div className="App">
@@ -88,9 +84,8 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        {/* Apply the dark theme to the entire app */}
         <ThemeProvider theme={darkTheme}>
-          <CssBaseline /> {/* Ensures a consistent baseline across browsers */}
+          <CssBaseline />
           <AppContent />
         </ThemeProvider>
       </AuthProvider>
