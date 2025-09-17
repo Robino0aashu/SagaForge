@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 import {
-    Button, Typography, Container, Grid, Card, CardContent, Box, Paper, Skeleton, Divider,
-    Dialog, DialogTitle, DialogContent, DialogActions, CardActionArea
+  Button, Typography, Container, Grid, Card, CardContent, Box, Paper, Skeleton, Divider,
+  Dialog, DialogTitle, DialogContent, DialogActions, CardActionArea
 } from '@mui/material'; // Import Dialog components and CardActionArea
 import { keyframes } from '@emotion/react';
 
@@ -21,109 +22,127 @@ const gradientAnimation = keyframes`
   100% { background-position: 0% 50%; }
 `;
 
+const stripMarkdown = (markdown) => {
+  return markdown
+    // Remove headers (e.g., #, ##)
+    .replace(/^#+\s/gm, '')
+    // Remove bold and italics (e.g., **, *, __, _)
+    .replace(/(\*\*|__|\*|_)/g, '')
+    // Remove images and links, keeping the link text
+    .replace(/!?\[(.*?)\]\(.*?\)/g, '$1')
+    // Remove blockquotes
+    .replace(/^>\s?/gm, '')
+    // Remove horizontal rules
+    .replace(/^---/gm, '')
+    // Remove code ticks
+    .replace(/`/g, '')
+    // Trim whitespace from the start and end
+    .trim();
+};
+
 const PublicStories = () => {
-    const [stories, setStories] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [selectedStory, setSelectedStory] = useState(null); // State for the selected story
-    const [isModalOpen, setIsModalOpen] = useState(false);   // State for modal visibility
+  const [stories, setStories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedStory, setSelectedStory] = useState(null); // State for the selected story
+  const [isModalOpen, setIsModalOpen] = useState(false);   // State for modal visibility
 
-    useEffect(() => {
-        const fetchPublicStories = async () => {
-            try {
-                const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/games/stories/public?limit=10`);
-                const data = await response.json();
-                if (data.success) {
-                    setStories(data.stories);
-                }
-            } catch (error) {
-                console.error("Failed to fetch public stories", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchPublicStories();
-    }, []);
-
-    // --- HANDLERS FOR THE DIALOG ---
-    const handleStoryClick = (story) => {
-        setSelectedStory(story);
-        setIsModalOpen(true);
+  useEffect(() => {
+    const fetchPublicStories = async () => {
+      try {
+        const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/api/games/stories/public?limit=10`);
+        const data = await response.json();
+        if (data.success) {
+          setStories(data.stories);
+        }
+      } catch (error) {
+        console.error("Failed to fetch public stories", error);
+      } finally {
+        setLoading(false);
+      }
     };
+    fetchPublicStories();
+  }, []);
 
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
-        setSelectedStory(null);
-    };
+  // --- HANDLERS FOR THE DIALOG ---
+  const handleStoryClick = (story) => {
+    setSelectedStory(story);
+    setIsModalOpen(true);
+  };
 
-    if (loading) {
-        return (
-            <Grid container spacing={2} sx={{ flexWrap: 'nowrap' }}>
-                {[...Array(3)].map((_, index) => (
-                    <Grid item xs={12} sm={6} md={4} key={index}>
-                        <Skeleton variant="rectangular" width={345} height={150} />
-                    </Grid>
-                ))}
-            </Grid>
-        )
-    }
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedStory(null);
+  };
 
-    if (stories.length === 0) {
-        return null; // Don't show the section if there are no stories
-    }
-
+  if (loading) {
     return (
-        <>
-            <Box
-              sx={{
-                  display: 'flex',
-                  overflowX: 'auto',
-                  py: 2,
-                  '&::-webkit-scrollbar': { height: '8px' },
-                  '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '4px' }
-              }}
-            >
-                {stories.map(story => (
-                    <Card
-                      key={story.id}
-                      sx={{
-                          flex: '0 0 auto',
-                          width: 345,
-                          mr: 2,
-                          bgcolor: 'rgba(0,0,0,0.2)'
-                      }}
-                    >
-                        {/* CardActionArea makes the entire card clickable */}
-                        <CardActionArea onClick={() => handleStoryClick(story)}>
-                            <CardContent>
-                                <Typography gutterBottom variant="h6" component="div" noWrap>
-                                    {story.title}
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary" sx={{ height: 60, overflow: 'hidden' }}>
-                                    {story.summary || 'No summary available.'}
-                                </Typography>
-                            </CardContent>
-                        </CardActionArea>
-                    </Card>
-                ))}
-            </Box>
+      <Grid container spacing={2} sx={{ flexWrap: 'nowrap' }}>
+        {[...Array(3)].map((_, index) => (
+          <Grid item xs={12} sm={6} md={4} key={index}>
+            <Skeleton variant="rectangular" width={345} height={150} />
+          </Grid>
+        ))}
+      </Grid>
+    )
+  }
 
-            {/* --- DIALOG FOR DISPLAYING THE STORY --- */}
-            {selectedStory && (
-                <Dialog open={isModalOpen} onClose={handleCloseModal} fullWidth maxWidth="md">
-                    <DialogTitle>{selectedStory.title}</DialogTitle>
-                    <DialogContent dividers>
-                        {/* Make sure your API response includes a 'content' field for the full story */}
-                        <Typography style={{ whiteSpace: 'pre-wrap' }}>
-                            {selectedStory.summary || 'Full story content not available.'}
-                        </Typography>
-                    </DialogContent>
-                    <DialogActions>
-                        <Button onClick={handleCloseModal}>Close</Button>
-                    </DialogActions>
-                </Dialog>
-            )}
-        </>
-    );
+  if (stories.length === 0) {
+    return null; // Don't show the section if there are no stories
+  }
+
+  return (
+    <>
+      <Box
+        sx={{
+          display: 'flex',
+          overflowX: 'auto',
+          py: 2,
+          '&::-webkit-scrollbar': { height: '8px' },
+          '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '4px' }
+        }}
+      >
+        {stories.map(story => (
+          <Card
+            key={story.id}
+            sx={{
+              flex: '0 0 auto',
+              width: 345,
+              mr: 2,
+              bgcolor: 'rgba(0,0,0,0.2)'
+            }}
+          >
+            {/* CardActionArea makes the entire card clickable */}
+            <CardActionArea onClick={() => handleStoryClick(story)}>
+              <CardContent>
+                <Typography gutterBottom variant="h6" component="div" noWrap>
+                  {story.title}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ height: 60, overflow: 'hidden' }}>
+                  {stripMarkdown(story.summary) || 'No summary available.'}
+                </Typography>
+              </CardContent>
+            </CardActionArea>
+          </Card>
+        ))}
+      </Box>
+
+      {/* --- DIALOG FOR DISPLAYING THE STORY --- */}
+      {selectedStory && (
+        <Dialog open={isModalOpen} onClose={handleCloseModal} fullWidth maxWidth="md">
+          <DialogTitle>{selectedStory.title}</DialogTitle>
+          <DialogContent dividers>
+            {/* Make sure your API response includes a 'content' field for the full story */}
+            <ReactMarkdown>
+              {selectedStory.summary || 'Full story content not available.'}
+            </ReactMarkdown>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseModal}>Close</Button>
+          </DialogActions>
+        </Dialog>
+      )}
+    </>
+  );
 };
 
 
@@ -131,7 +150,7 @@ function Home() {
   return (
     <Box>
       {/* Hero Section (Unchanged) */}
-      <Paper 
+      <Paper
         sx={{
           py: 10,
           textAlign: 'center',
@@ -172,7 +191,7 @@ function Home() {
         </Typography>
         <PublicStories />
       </Container>
-      
+
       {/* --- DIVIDER TO SEPARATE THE SECTIONS --- */}
       <Divider sx={{ my: 4 }} />
 
