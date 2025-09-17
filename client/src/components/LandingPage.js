@@ -33,10 +33,10 @@ function LandingPage() {
                 minHeight: '100vh',
                 position: 'relative',
                 overflow: 'hidden',
-                // --- BACKGROUND ---
                 background: 'linear-gradient(45deg, #121212 30%, #281a3d 90%)',
                 color: 'white',
                 textAlign: 'center',
+                px: 2, // Add some horizontal padding for very small screens
             }}
         >
             <Container maxWidth="md">
@@ -45,8 +45,9 @@ function LandingPage() {
                     component="h1"
                     sx={{
                         fontWeight: 'bold',
-                        mb: 2,
-                        // --- ANIMATED GRADIENT TEXT ---
+                        // CHANGED: Responsive font size
+                        fontSize: { xs: '3rem', sm: '4.5rem', md: '6rem' }, 
+                        mb: { xs: 3, md: 2 }, // CHANGED: Responsive margin
                         background: 'linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab)',
                         backgroundSize: '400% 400%',
                         WebkitBackgroundClip: 'text',
@@ -56,7 +57,12 @@ function LandingPage() {
                 >
                     SagaForge
                 </Typography>
-                <Typography variant="h5" component="p" sx={{ mb: 4, color: 'rgba(255, 255, 255, 0.7)' }}>
+                <Typography variant="h5" component="p" sx={{ 
+                    // CHANGED: Responsive font size and margin
+                    fontSize: { xs: '1rem', sm: '1.25rem' },
+                    mb: { xs: 4, md: 4 },
+                    color: 'rgba(255, 255, 255, 0.7)' 
+                }}>
                     Welcome to a world where your words weave the story. SagaForge is a collaborative storytelling game where you and your friends decide the fate of your characters, one choice at a time.
                 </Typography>
                 <Button
@@ -65,10 +71,11 @@ function LandingPage() {
                     endIcon={<ArrowForwardIcon />}
                     onClick={handleButtonClick}
                     sx={{
-                        fontSize: '1.2rem',
-                        py: 1.5,
-                        px: 4,
-                        borderRadius: '50px', // Pill-shaped button
+                        // CHANGED: Responsive font size and padding
+                        fontSize: { xs: '1rem', md: '1.2rem' },
+                        py: { xs: 1, md: 1.5 },
+                        px: { xs: 3, md: 4 },
+                        borderRadius: '50px',
                         transition: 'transform 0.2s ease-in-out',
                         '&:hover': {
                             transform: 'scale(1.05)'

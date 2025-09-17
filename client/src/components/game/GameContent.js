@@ -1,6 +1,7 @@
 import React from 'react';
 import { Paper, Typography, Box, Button, Grid, Divider } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
+import ReactMarkdown from 'react-markdown';
 
 // Icons
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
@@ -12,6 +13,7 @@ import SaveIcon from '@mui/icons-material/Save';
 const GameContent = ({ roomState, gameData, onStartGame, onVote, onSaveAndEnd, isSaving, isGuest }) => {
 
     const lastTwoStoryParts = roomState.story?.slice(-2) || [];
+
     // --- WAITING VIEW ---
     if (roomState.status === 'waiting') {
         return (
@@ -42,17 +44,40 @@ const GameContent = ({ roomState, gameData, onStartGame, onVote, onSaveAndEnd, i
 
     // --- VOTING / PLAYING VIEW ---
     if (roomState.status === 'playing' || roomState.status === 'voting') {
+        const choicePart = lastTwoStoryParts.length > 0 ? lastTwoStoryParts[0] : null;
+        const narrativePart = lastTwoStoryParts.length > 1 ? lastTwoStoryParts[1] : null;
+
         return (
             <Paper sx={{ p: { xs: 2, sm: 3 } }}>
                 <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
                     <MenuBookIcon sx={{ mr: 1 }} /> The Story So Far...
                 </Typography>
                 <Box sx={{ p: 2, mb: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, minHeight: '100px' }}>
-                    {lastTwoStoryParts.map((part, index) => (
-                        <Typography key={index} paragraph>
-                            <strong>{part.type === 'prompt' ? '📝' : '👉'}:</strong> {part.content}
-                        </Typography>
-                    ))}
+
+                    {/* Display the winning choice with its new label */}
+                    {choicePart && (
+                        <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle1" color="text.secondary">
+                                <strong>Winning Choice:</strong>
+                            </Typography>
+                            <Typography component="div">
+                                <ReactMarkdown>{choicePart.content}</ReactMarkdown>
+                            </Typography>
+                        </Box>
+                    )}
+
+                    {/* Display the next part of the story with its new label */}
+                    {narrativePart && (
+                        <Box>
+                            <Typography variant="subtitle1" color="text.secondary">
+                                <strong>Next Part:</strong>
+                            </Typography>
+                            <Typography component="div">
+                                <ReactMarkdown>{narrativePart.content}</ReactMarkdown>
+                            </Typography>
+                        </Box>
+                    )}
+
                 </Box>
 
                 {roomState.status === 'voting' && roomState.currentChoices && (
@@ -83,14 +108,18 @@ const GameContent = ({ roomState, gameData, onStartGame, onVote, onSaveAndEnd, i
 
     // --- COMPLETED VIEW ---
     if (roomState.status === 'completed') {
+        // DEBUG: Log the final story content to the console
+        console.log('[DEBUG] Final Story Content:', roomState.finalStory);
+
         return (
             <Paper sx={{ p: { xs: 2, sm: 3 } }}>
                 <Typography variant="h5" gutterBottom>📜 The Full Saga</Typography>
-                <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, whiteSpace: 'pre-wrap', maxHeight: '400px', overflowY: 'auto' }}>
-                    <Typography>{roomState.finalStory || 'The story has concluded.'}</Typography>
+                <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, maxHeight: '400px', overflowY: 'auto' }}>
+                    <Typography component="div">
+                        <ReactMarkdown>{roomState.finalStory || 'The story has concluded.'}</ReactMarkdown>
+                    </Typography>
                 </Box>
                 {!isGuest && (
-                    // --- UPDATE THE BUTTON TO A LOADINGBUTTON ---
                     <LoadingButton
                         variant="contained"
                         startIcon={<SaveIcon />}

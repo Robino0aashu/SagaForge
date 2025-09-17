@@ -18,7 +18,7 @@ export const generateStoryPart = async (storyContext, chosenAction, currentRound
             messages: [
                 {
                     role: 'system',
-                    content: 'You are a creative storyteller for a collaborative interactive fiction game. Generate engaging, immersive story continuations that follow logically from player choices. Adjust pacing based on how many rounds remain - build tension early, develop plot in middle rounds, and move toward resolution in final rounds.'
+                    content: 'You are a creative storyteller who gives output in markdown format for a collaborative interactive fiction game. Generate engaging, immersive story continuations that follow logically from player choices. Adjust pacing based on how many rounds remain - build tension early, develop plot in middle rounds, and move toward resolution in final rounds.'
                 },
                 {
                     role: 'user',
@@ -28,8 +28,18 @@ export const generateStoryPart = async (storyContext, chosenAction, currentRound
             temperature: 0.8,
             max_tokens: maxTokens > 50 ? maxTokens : 50 // ensure a minimum length
         });
+        let storyContent = response.choices[0].message.content.trim();
 
-        return response.choices[0].message.content.trim();
+        // 2. 💡 ADD THIS FIX: Check for and remove the "markdown" prefix
+        if (storyContent.startsWith('```markdown')) {
+          storyContent = storyContent
+            .replace(/^```markdown\n/, '') // Remove the opening fence and newline
+            .replace(/```$/, '')           // Remove the closing fence from the end
+            .trim();                      // Trim any lingering whitespace
+        }
+
+        return storyContent;
+        // return response.choices[0].message.content.trim();
     } catch (error) {
         console.error('Error generating story with Mistral:', error);
         return `Following your choice to ${chosenAction.toLowerCase()}, the story takes an unexpected turn...`;
