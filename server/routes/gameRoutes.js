@@ -176,6 +176,62 @@ router.post('/story', authenticateToken, async (req, res) => {
     }
 });
 
+router.delete('/story/:storyId', authenticateToken, async (req, res) => {
+    try {
+        const { storyId } = req.params;
+        const userId = req.user.userId;
+
+        // First, check if the story exists and belongs to the user
+        const storyCheck = await query(
+            'SELECT id, created_by FROM stories WHERE id = $1',
+            [storyId]
+        );
+
+        if (storyCheck.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Story not found'
+            });
+        }
+
+        // Verify that the user owns this story
+        if (storyCheck.rows[0].created_by !== userId) {
+            return res.status(403).json({
+                success: false,
+                error: 'You can only delete your own stories'
+            });
+        }
+
+        // Delete the story
+        const deleteResult = await query(
+            'DELETE FROM stories WHERE id = $1 AND created_by = $2 RETURNING id, title',
+            [storyId, userId]
+        );
+
+        if (deleteResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Story not found or could not be deleted'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Story deleted successfully',
+            deletedStory: {
+                id: deleteResult.rows[0].id,
+                title: deleteResult.rows[0].title
+            }
+        });
+
+    } catch (error) {
+        console.error('Error deleting story:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to delete story'
+        });
+    }
+});
 
 
 export default router;
